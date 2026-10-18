@@ -70,12 +70,12 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({ initialD
       {/* Sub-header / Notice Banner */}
       {isAdTraffic && (
         <div className="bg-amber-500/10 border-b border-amber-200/80 px-4 py-2 text-center text-xs text-amber-800 font-medium">
-          🎯 <strong>Targeted Landing:</strong> You arrived via paid campaign (<code className="bg-amber-100 px-1 py-0.5 rounded">gclid={gclid}</code>). Dynamic ad layout active.
+          🎯 <strong>Targeted Landing:</strong> Paid campaign active (<code className="bg-amber-100 px-1 py-0.5 rounded">gclid={gclid}</code>). Above-the-fold layout optimized.
         </div>
       )}
 
       {/* Main 3-Column Layout */}
-      <div className="max-w-[1400px] mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 justify-center">
+      <div className="max-w-[1400px] mx-auto px-4 py-4 flex flex-col lg:flex-row gap-6 justify-center">
         
         {/* Left Sticky Sidebar (AdX Left) */}
         {ads.sidebarLeft.enabled && (
@@ -87,11 +87,21 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({ initialD
         )}
 
         {/* Center Content Column */}
-        <main className="w-full max-w-[800px] bg-white rounded-xl shadow-sm border border-neutral-200 p-6 md:p-8">
+        <main className="w-full max-w-[800px] bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-6 md:p-8">
           
+          {/* Top Home Ad (Key Monetization Slot - Above the Fold) */}
+          <div id="adx-home-top-wrapper" className="mb-3">
+            <AdUnit config={ads.homeTop} isAdTraffic={isAdTraffic} className="!my-0" />
+          </div>
+
+          {/* Title */}
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 leading-tight mb-2">
+            {currentArticle.title}
+          </h1>
+
           {/* Category Badge & Meta */}
           <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500 mb-3">
-            <span className="bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded">
+            <span className="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded text-[11px]">
               {currentArticle.category}
             </span>
             <span className="flex items-center gap-1">
@@ -105,58 +115,50 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({ initialD
             </span>
           </div>
 
-          {/* Title */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-neutral-900 leading-tight mb-4">
-            {currentArticle.title}
-          </h1>
-
-          {/* Subtitle */}
-          {currentArticle.subtitle && (
-            <p className="text-base sm:text-lg text-neutral-600 mb-6">
-              {currentArticle.subtitle}
-            </p>
-          )}
-
-          {/* Top Home Ad (Key Monetization Slot) */}
-          <div id="adx-home-top-wrapper" className="my-4">
-            <AdUnit config={ads.homeTop} isAdTraffic={isAdTraffic} />
-          </div>
-
-          {/* Featured Image */}
-          {currentArticle.ogImage && (
-            <div className="my-6 rounded-lg overflow-hidden border border-neutral-200">
-              <img
-                src={currentArticle.ogImage}
-                alt={currentArticle.title}
-                className="w-full h-auto object-cover max-h-[420px]"
-              />
-            </div>
-          )}
-
-          {/* Article Body Content */}
+          {/* Article Description Wrapper with Above-The-Fold Read More Button */}
           <div className="relative">
+            {/* Short snippet visible before scroll */}
             <div
-              className={`prose prose-neutral max-w-none prose-headings:font-bold prose-headings:text-neutral-900 prose-p:leading-relaxed transition-all duration-500 ${
-                isTruncated ? 'max-h-[360px] overflow-hidden' : ''
+              className={`prose prose-neutral max-w-none text-sm sm:text-base leading-relaxed transition-all duration-300 relative ${
+                isTruncated ? 'max-h-[140px] overflow-hidden' : ''
               }`}
-              dangerouslySetInnerHTML={{ __html: currentArticle.content }}
-            />
-
-            {/* In-Article / Mid Content Ad (Always present or shown after first paras) */}
-            <div className="my-6">
-              <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
+            >
+              <div dangerouslySetInnerHTML={{ __html: currentArticle.content }} />
+              
+              {/* Fade gradient mask when truncated */}
+              {isTruncated && (
+                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
+              )}
             </div>
 
-            {/* Read More Trigger & Gradient Mask */}
+            {/* Read More Button - Directly Visible Above The Fold without scrolling */}
             {isTruncated && (
-              <div className="absolute inset-x-0 bottom-0 pt-32 pb-4 bg-gradient-to-t from-white via-white/95 to-transparent flex flex-col items-center justify-end z-10">
+              <div className="mt-2 text-center py-2 border-b border-neutral-100">
                 <button
                   onClick={() => setIsTruncated(false)}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-full shadow-lg shadow-blue-500/20 flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all"
+                  className="w-full sm:w-auto px-8 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 mx-auto"
                 >
                   <span>Read full story...</span>
                   <ChevronDown className="w-4 h-4 animate-bounce" />
                 </button>
+              </div>
+            )}
+
+            {/* Featured Image - Displayed when expanded or right after lead paragraph */}
+            {(!isTruncated || !isAdTraffic) && currentArticle.ogImage && (
+              <div className="my-6 rounded-lg overflow-hidden border border-neutral-200">
+                <img
+                  src={currentArticle.ogImage}
+                  alt={currentArticle.title}
+                  className="w-full h-auto object-cover max-h-[420px]"
+                />
+              </div>
+            )}
+
+            {/* In-Article / Mid Content Ad (Shown after expansion) */}
+            {!isTruncated && (
+              <div className="my-6">
+                <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
               </div>
             )}
           </div>
