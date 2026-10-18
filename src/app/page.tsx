@@ -17,19 +17,12 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+export default async function HomePage() {
   const siteData = getSiteData();
-  const resolvedSearchParams = await searchParams;
-  const gclidParam = resolvedSearchParams?.gclid;
-  const isAdTraffic = Boolean(gclidParam);
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading site...</div>}>
-      <ArticlePageContent initialData={siteData} isAdTrafficInitial={isAdTraffic} />
+    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading...</div>}>
+      <ArticlePageContent initialData={siteData} />
     </Suspense>
   );
 }
