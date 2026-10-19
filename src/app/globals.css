@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* Hide any bottom sticky or anchor ad elements unconditionally */
+.gpt-ad-anchor-bottom,
+div[id*="anchor"],
+div[class*="anchor"],
+ins.adsbygoogle[data-anchor-status] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
