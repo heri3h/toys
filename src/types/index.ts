@@ -42,7 +42,6 @@ export interface SiteData {
     homeTop: AdSlotConfig;
     homeMore: AdSlotConfig;
     inArticle: AdSlotConfig;
-    anchorBottom: AdSlotConfig;
     interstitial: AdSlotConfig;
   };
   articles: Article[];

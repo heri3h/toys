@@ -62,15 +62,6 @@ const DEFAULT_DATA: SiteData = {
       enabled: true,
       lazyLoad: true,
     },
-    anchorBottom: {
-      id: "anchor_bottom",
-      name: "Sticky Bottom Anchor Ad",
-      slotPath: "/22282810983/lw5wflkevg_xqc_anchor",
-      sizes: [],
-      tcpm: "100000",
-      enabled: false,
-      lazyLoad: false,
-    },
     interstitial: {
       id: "interstitial",
       name: "Full-page Interstitial Ad",
