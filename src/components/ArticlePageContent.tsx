@@ -23,6 +23,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
 
   const [overlayActive, setOverlayActive] = useState<boolean>(false);
   const [isTruncated, setIsTruncated] = useState<boolean>(true); // Truncated by default
+  const [hasScrolled, setHasScrolled] = useState<boolean>(false); // Bottom section loads only when scrolled
 
   const { settings, ads, articles } = initialData;
   const currentArticle = articles[0] || {
@@ -33,6 +34,50 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
     author: 'Admin',
     content: '<p>Loading...</p>',
   };
+
+  useEffect(() => {
+    if (hasScrolled) return;
+
+    const onScroll = () => {
+      if (window.scrollY > 10) {
+        setHasScrolled(true);
+      }
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) {
+        setHasScrolled(true);
+      }
+    };
+
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const currentY = e.touches[0].clientY;
+      if (touchStartY - currentY > 10) {
+        setHasScrolled(true);
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+
+    if (window.scrollY > 10) {
+      setHasScrolled(true);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [hasScrolled]);
 
   useEffect(() => {
     // Show spinner overlay when paid traffic is detected
@@ -71,7 +116,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-[#f0f0f0] font-sans text-[#1a1a1a]">
+    <div className="min-h-[102vh] bg-[#f0f0f0] font-sans text-[#1a1a1a]">
       {/* Loading Overlay */}
       <AdOverlay show={overlayActive} />
 
@@ -133,7 +178,10 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
             {/* The "Read more..." Button - Visible immediately above the fold */}
             {isTruncated && (
               <button
-                onClick={() => setIsTruncated(false)}
+                onClick={() => {
+                  setIsTruncated(false);
+                  setHasScrolled(true);
+                }}
                 className="w-full mt-2 py-2.5 text-center text-[#3b9cc1] hover:text-[#0096C7] font-semibold text-base transition-colors flex items-center justify-center gap-1.5 border border-dashed border-cyan-200 rounded-md hover:bg-cyan-50/50"
               >
                 <span>Read more...</span>
@@ -149,41 +197,47 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
             )}
           </div>
 
-          {/* Video Cards / Play Thumbs Section (Matching original) */}
-          <div className="mt-6 space-y-4 pt-4 border-t border-gray-100">
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2">
-              Featured Videos & Games
-            </h3>
-            {relatedThumbnails.map((item, idx) => (
-              <div
-                key={idx}
-                className="group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
-              >
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                />
-                {/* Play Button Icon */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-14 h-10 rounded-xl bg-black/80 group-hover:bg-red-600 transition-colors flex items-center justify-center text-white shadow-lg">
-                    <Play className="w-5 h-5 fill-current ml-0.5" />
+          {/* Bottom Section (Featured Videos & In-Article Ad) - Only loaded after user scrolls */}
+          {hasScrolled && (
+            <div className="transition-opacity duration-500 ease-in opacity-100">
+              {/* Video Cards / Play Thumbs Section (Matching original) */}
+              <div className="mt-6 space-y-4 pt-4 border-t border-gray-100">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2">
+                  Featured Videos & Games
+                </h3>
+                {relatedThumbnails.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                      loading="lazy"
+                    />
+                    {/* Play Button Icon */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-14 h-10 rounded-xl bg-black/80 group-hover:bg-red-600 transition-colors flex items-center justify-center text-white shadow-lg">
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                    {/* Title Overlay */}
+                    <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                      <p className="text-white text-xs sm:text-sm font-semibold truncate">
+                        {item.title}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                {/* Title Overlay */}
-                <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                  <p className="text-white text-xs sm:text-sm font-semibold truncate">
-                    {item.title}
-                  </p>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Bottom In-Article Ad */}
-          {!isTruncated && ads.inArticle.enabled && (
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <AdUnit config={ads.inArticle} isAdTraffic={isAdTraffic} />
+              {/* Bottom In-Article Ad */}
+              {!isTruncated && ads.inArticle.enabled && (
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <AdUnit config={ads.inArticle} isAdTraffic={isAdTraffic} />
+                </div>
+              )}
             </div>
           )}
         </div>
