@@ -198,14 +198,6 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
         )}
       </div>
 
-      {/* Sticky Bottom Anchor Ad */}
-      {ads.anchorBottom.enabled && (
-        <div className="fixed bottom-0 inset-x-0 bg-white/95 border-t border-neutral-300 z-40 py-1 shadow-2xl flex justify-center">
-          <div className="w-full max-w-2xl px-2">
-            <AdUnit config={ads.anchorBottom} isAdTraffic={isAdTraffic} className="!my-0" />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -68,7 +68,7 @@ const DEFAULT_DATA: SiteData = {
       slotPath: "/22282810983/lw5wflkevg_xqc_anchor",
       sizes: [],
       tcpm: "100000",
-      enabled: true,
+      enabled: false,
       lazyLoad: false,
     },
     interstitial: {
