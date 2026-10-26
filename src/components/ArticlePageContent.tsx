@@ -120,11 +120,11 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
       {/* Loading Overlay */}
       <AdOverlay show={overlayActive} />
 
-      <div className="max-w-[1360px] mx-auto px-2 py-4 flex flex-col lg:flex-row gap-5 justify-center items-start">
+      <div className="max-w-[1360px] mx-auto px-2 py-4 flex flex-col lg:flex-row gap-5 justify-center items-stretch">
         {/* Left Sticky Sidebar (AdX Left) */}
         {ads.sidebarLeft.enabled && (
-          <aside className="hidden xl:block w-[300px] flex-shrink-0">
-            <div className="sticky top-4">
+          <aside className="hidden xl:block w-[300px] flex-shrink-0 self-stretch">
+            <div className="sticky top-4 z-10">
               <AdUnit config={ads.sidebarLeft} isAdTraffic={isAdTraffic} />
             </div>
           </aside>
@@ -244,8 +244,8 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
 
         {/* Right Sticky Sidebar (AdX Right) */}
         {ads.sidebarRight.enabled && (
-          <aside className="hidden lg:block w-[300px] flex-shrink-0">
-            <div className="sticky top-4">
+          <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
+            <div className="sticky top-4 z-10">
               <AdUnit config={ads.sidebarRight} isAdTraffic={isAdTraffic} />
             </div>
           </aside>
