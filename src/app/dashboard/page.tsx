@@ -20,7 +20,9 @@ import {
   Copy,
   Check,
   Upload,
+  Zap,
 } from 'lucide-react';
+import { compressImageToWebP } from '@/lib/imageCompressor';
 
 export default function DashboardPage() {
   const [data, setData] = useState<SiteData | null>(null);
@@ -30,6 +32,8 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [uploadingThumb, setUploadingThumb] = useState<string | null>(null);
+  const [compressionPreset, setCompressionPreset] = useState<'fast' | 'optimal' | 'hd'>('optimal');
+  const [compressionStats, setCompressionStats] = useState<Record<string, string>>({});
 
   // Auth states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -40,11 +44,31 @@ export default function DashboardPage() {
   const [sizeInputs, setSizeInputs] = useState<Record<string, string>>({});
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
-  const uploadImageFile = async (file: File, targetId: string): Promise<string | null> => {
+  const uploadImageFile = async (
+    rawFile: File,
+    targetId: string,
+    maxWidth = 800
+  ): Promise<string | null> => {
     setUploadingThumb(targetId);
     try {
+      const qualityMap = {
+        fast: 0.65,
+        optimal: 0.8,
+        hd: 0.9,
+      };
+      const compressed = await compressImageToWebP(rawFile, {
+        maxWidth,
+        maxHeight: maxWidth,
+        quality: qualityMap[compressionPreset],
+      });
+
+      setCompressionStats((prev) => ({
+        ...prev,
+        [targetId]: compressed.summary,
+      }));
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressed.file);
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const json = await res.json();
       if (json.url) {
@@ -872,9 +896,40 @@ export default function DashboardPage() {
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 font-semibold mb-1.5">
-                        Thumbnail / Cover Image Artikel (URL atau Upload File)
-                      </label>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                        <label className="text-slate-300 font-semibold flex items-center gap-1.5">
+                          <span>Thumbnail / Cover Image Artikel</span>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+                            <Zap className="w-3 h-3" />
+                            <span>Auto-Compress WebP</span>
+                          </span>
+                        </label>
+
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <span className="text-slate-400">Level Kompresi:</span>
+                          {(
+                            [
+                              { id: 'fast', label: 'Super Ringan (65%)' },
+                              { id: 'optimal', label: 'Optimal Cepat (80%)' },
+                              { id: 'hd', label: 'HD Tajam (90%)' },
+                            ] as const
+                          ).map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => setCompressionPreset(preset.id)}
+                              className={`px-2 py-0.5 rounded border text-[10px] font-medium transition-colors ${
+                                compressionPreset === preset.id
+                                  ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
+                                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="flex flex-col sm:flex-row gap-3 items-start">
                         <label className="group relative w-44 aspect-video rounded-lg border border-slate-700 overflow-hidden bg-slate-950 shrink-0 cursor-pointer">
                           {currentArticle.ogImage ? (
@@ -892,7 +947,9 @@ export default function DashboardPage() {
                             <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-blue-600 px-2.5 py-1 rounded shadow">
                               <Upload className="w-3 h-3" />
                               <span>
-                                {uploadingThumb === 'article_og' ? 'Uploading...' : 'Ganti Gambar'}
+                                {uploadingThumb === 'article_og'
+                                  ? 'Mengompres...'
+                                  : 'Ganti Gambar'}
                               </span>
                             </span>
                           </div>
@@ -903,7 +960,7 @@ export default function DashboardPage() {
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              const url = await uploadImageFile(file, 'article_og');
+                              const url = await uploadImageFile(file, 'article_og', 800);
                               if (url) updateArticle(selectedArticleIdx, 'ogImage', url);
                             }}
                           />
@@ -923,7 +980,9 @@ export default function DashboardPage() {
                             <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shrink-0 shadow-xs transition-colors">
                               <Upload className="w-3.5 h-3.5" />
                               <span>
-                                {uploadingThumb === 'article_og' ? 'Uploading...' : 'Upload Gambar'}
+                                {uploadingThumb === 'article_og'
+                                  ? 'Mengompres...'
+                                  : 'Upload Gambar'}
                               </span>
                               <input
                                 type="file"
@@ -932,15 +991,23 @@ export default function DashboardPage() {
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
-                                  const url = await uploadImageFile(file, 'article_og');
+                                  const url = await uploadImageFile(file, 'article_og', 800);
                                   if (url) updateArticle(selectedArticleIdx, 'ogImage', url);
                                 }}
                               />
                             </label>
                           </div>
-                          <p className="text-[11px] text-slate-400">
-                            Klik langsung pada gambar preview atau tombol <strong>Upload Gambar</strong> untuk mengganti thumbnail dari komputer/HP Anda, lalu klik <strong>Save All Changes</strong>.
-                          </p>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[11px] text-slate-400">
+                              Otomatis dikompres &amp; diubah ke format <strong>.webp</strong> saat upload agar loading halaman super cepat.
+                            </p>
+                            {compressionStats['article_og'] && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded">
+                                <Zap className="w-3 h-3" />
+                                <span>Hasil: {compressionStats['article_og']}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -970,13 +1037,19 @@ export default function DashboardPage() {
                 activeTab === 'article' ? 'mt-6' : ''
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-bold text-white">
-                    Thumbnail Video &amp; Games Bawah (Featured Cards)
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-white">
+                      Thumbnail Video &amp; Games Bawah (Featured Cards)
+                    </h2>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+                      <Zap className="w-3 h-3" />
+                      <span>Auto-WebP (Max 480px)</span>
+                    </span>
+                  </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    Daftar 3 kartu gambar/video dengan ikon Play di bagian bawah halaman yang muncul saat pengunjung skrol. Klik gambar untuk upload/ganti thumbnail.
+                    Daftar 3 kartu gambar/video dengan ikon Play di bagian bawah halaman yang muncul saat pengunjung skrol. Gambar otomatis dikompres ke WebP ukuran ringan.
                   </p>
                 </div>
                 <button
@@ -1011,7 +1084,9 @@ export default function DashboardPage() {
                         <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-blue-600 px-2.5 py-1 rounded shadow">
                           <Upload className="w-3 h-3" />
                           <span>
-                            {uploadingThumb === `feat_${idx}` ? 'Uploading...' : 'Ganti Thumbnail'}
+                            {uploadingThumb === `feat_${idx}`
+                              ? 'Mengompres...'
+                              : 'Ganti Thumbnail'}
                           </span>
                         </span>
                       </div>
@@ -1022,7 +1097,7 @@ export default function DashboardPage() {
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          const url = await uploadImageFile(file, `feat_${idx}`);
+                          const url = await uploadImageFile(file, `feat_${idx}`, 480);
                           if (url) updateFeaturedItem(idx, 'image', url);
                         }}
                       />
@@ -1030,7 +1105,17 @@ export default function DashboardPage() {
 
                     <div className="flex-1 w-full space-y-3 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-300">Thumbnail Kartu #{idx + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-300">
+                            Thumbnail Kartu #{idx + 1}
+                          </span>
+                          {compressionStats[`feat_${idx}`] && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+                              <Zap className="w-3 h-3" />
+                              <span>{compressionStats[`feat_${idx}`]}</span>
+                            </span>
+                          )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => removeFeaturedItem(idx)}
@@ -1054,7 +1139,7 @@ export default function DashboardPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-slate-400 mb-1">
-                            Thumbnail Image (URL atau Upload)
+                            Thumbnail Image (URL atau Upload Auto-WebP)
                           </label>
                           <div className="flex gap-1.5">
                             <input
@@ -1066,7 +1151,7 @@ export default function DashboardPage() {
                             <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold shrink-0">
                               <Upload className="w-3.5 h-3.5" />
                               <span>
-                                {uploadingThumb === `feat_${idx}` ? '...' : 'Upload'}
+                                {uploadingThumb === `feat_${idx}` ? 'Mengompres...' : 'Upload'}
                               </span>
                               <input
                                 type="file"
@@ -1075,7 +1160,7 @@ export default function DashboardPage() {
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (!file) return;
-                                  const url = await uploadImageFile(file, `feat_${idx}`);
+                                  const url = await uploadImageFile(file, `feat_${idx}`, 480);
                                   if (url) updateFeaturedItem(idx, 'image', url);
                                 }}
                               />

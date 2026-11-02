@@ -31,7 +31,9 @@ import {
   X,
   ChevronDown,
   Highlighter,
+  Zap,
 } from 'lucide-react';
+import { compressImageToWebP } from '@/lib/imageCompressor';
 
 interface RichTextEditorProps {
   value: string;
@@ -54,6 +56,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState<string | null>(null);
 
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -119,43 +123,55 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       editorRef.current.focus();
       const html = `<img src="${imageUrl.trim()}" alt="${
         imageAlt.trim() || 'Article image'
-      }" class="rounded-lg my-4 max-w-full h-auto mx-auto" /><p><br></p>`;
+      }" loading="lazy" decoding="async" class="rounded-lg my-4 max-w-full h-auto mx-auto" /><p><br></p>`;
       document.execCommand('insertHTML', false, html);
       emitChange();
     } else {
       onChange(
         `${value}\n<img src="${imageUrl.trim()}" alt="${
           imageAlt.trim() || 'Article image'
-        }" class="rounded-lg my-4 max-w-full h-auto mx-auto" />`
+        }" loading="lazy" decoding="async" class="rounded-lg my-4 max-w-full h-auto mx-auto" />`
       );
     }
     setImageUrl('');
     setImageAlt('');
+    setCompressionInfo(null);
     setShowImageModal(false);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
+    setUploadingImg(true);
+    setCompressionInfo(null);
     try {
+      const compressed = await compressImageToWebP(rawFile, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.8,
+      });
+      setCompressionInfo(compressed.summary);
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressed.file);
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const json = await res.json();
       if (json.url) {
         setImageUrl(json.url);
+        setUploadingImg(false);
         return;
       }
     } catch (err) {
       console.error('Upload failed, using fallback:', err);
     }
+    setUploadingImg(false);
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setImageUrl(reader.result);
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(rawFile);
   };
 
   const handleInsertLink = (e: React.FormEvent) => {
@@ -486,7 +502,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           className="bg-slate-950 border-b border-slate-800 p-3 flex flex-wrap items-end gap-3 text-xs"
         >
           <div className="flex-1 min-w-[220px]">
-            <label className="block text-slate-400 mb-1">Image URL atau Upload Gambar</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-slate-400">
+                Image URL atau Upload (Auto-Compress WebP)
+              </label>
+              {compressionInfo && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+                  <Zap className="w-3 h-3" />
+                  <span>{compressionInfo}</span>
+                </span>
+              )}
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -495,9 +521,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 placeholder="https://images.unsplash.com/..."
                 className="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 font-mono"
               />
-              <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shrink-0">
+              <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold shrink-0">
                 <Upload className="w-3.5 h-3.5" />
-                <span>Upload</span>
+                <span>{uploadingImg ? 'Mengompres...' : 'Upload'}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -522,7 +548,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               type="submit"
-              className="flex items-center gap-1 px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+              className="flex items-center gap-1 px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
             >
               <Check className="w-3.5 h-3.5" />
               <span>Sisipkan</span>

@@ -233,6 +233,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
                         loading="lazy"
+                        decoding="async"
                       />
                       {/* Play Button Icon */}
                       <div className="absolute inset-0 flex items-center justify-center">
