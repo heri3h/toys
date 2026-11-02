@@ -19,6 +19,7 @@ import {
   Star,
   Copy,
   Check,
+  Upload,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [uploadingThumb, setUploadingThumb] = useState<string | null>(null);
 
   // Auth states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -37,6 +39,24 @@ export default function DashboardPage() {
   // Raw text state for editing ad sizes comfortably
   const [sizeInputs, setSizeInputs] = useState<Record<string, string>>({});
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  const uploadImageFile = async (file: File, targetId: string): Promise<string | null> => {
+    setUploadingThumb(targetId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.url) {
+        return json.url as string;
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+    } finally {
+      setUploadingThumb(null);
+    }
+    return null;
+  };
 
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('toys_admin_auth');
@@ -852,26 +872,77 @@ export default function DashboardPage() {
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 font-semibold mb-1">
-                        Cover / OG Image URL
+                      <label className="block text-slate-300 font-semibold mb-1.5">
+                        Thumbnail / Cover Image Artikel (URL atau Upload File)
                       </label>
-                      <input
-                        type="text"
-                        value={currentArticle.ogImage || ''}
-                        onChange={(e) =>
-                          updateArticle(selectedArticleIdx, 'ogImage', e.target.value)
-                        }
-                        className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs text-slate-200 focus:border-blue-500 outline-none font-mono"
-                      />
-                      {currentArticle.ogImage && (
-                        <div className="mt-2 w-36 h-20 rounded border border-slate-700 overflow-hidden bg-slate-950">
-                          <img
-                            src={currentArticle.ogImage}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
+                      <div className="flex flex-col sm:flex-row gap-3 items-start">
+                        <label className="group relative w-44 aspect-video rounded-lg border border-slate-700 overflow-hidden bg-slate-950 shrink-0 cursor-pointer">
+                          {currentArticle.ogImage ? (
+                            <img
+                              src={currentArticle.ogImage}
+                              alt="Preview"
+                              className="w-full h-full object-cover group-hover:opacity-60 transition-opacity"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
+                              No Thumbnail
+                            </div>
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-blue-600 px-2.5 py-1 rounded shadow">
+                              <Upload className="w-3 h-3" />
+                              <span>
+                                {uploadingThumb === 'article_og' ? 'Uploading...' : 'Ganti Gambar'}
+                              </span>
+                            </span>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const url = await uploadImageFile(file, 'article_og');
+                              if (url) updateArticle(selectedArticleIdx, 'ogImage', url);
+                            }}
                           />
+                        </label>
+
+                        <div className="flex-1 w-full space-y-2">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={currentArticle.ogImage || ''}
+                              onChange={(e) =>
+                                updateArticle(selectedArticleIdx, 'ogImage', e.target.value)
+                              }
+                              placeholder="https://... atau klik Upload Gambar"
+                              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-blue-500 outline-none font-mono"
+                            />
+                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shrink-0 shadow-xs transition-colors">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>
+                                {uploadingThumb === 'article_og' ? 'Uploading...' : 'Upload Gambar'}
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const url = await uploadImageFile(file, 'article_og');
+                                  if (url) updateArticle(selectedArticleIdx, 'ogImage', url);
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Klik langsung pada gambar preview atau tombol <strong>Upload Gambar</strong> untuk mengganti thumbnail dari komputer/HP Anda, lalu klik <strong>Save All Changes</strong>.
+                          </p>
                         </div>
-                      )}
+                      </div>
                     </div>
 
                     <div>
@@ -892,16 +963,20 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* TAB 3: FEATURED VIDEOS & CARDS */}
-          {activeTab === 'featured' && (
-            <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-6 space-y-6">
+          {/* TAB 3 (AND ALSO SHOWN BELOW ARTICLE EDITOR): FEATURED VIDEOS & CARDS */}
+          {(activeTab === 'featured' || activeTab === 'article') && (
+            <div
+              className={`bg-slate-900/70 border border-slate-800 rounded-xl p-6 space-y-6 ${
+                activeTab === 'article' ? 'mt-6' : ''
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-white">
-                    Featured Videos &amp; Games (Bagian Bawah)
+                    Thumbnail Video &amp; Games Bawah (Featured Cards)
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Kartu rekomendasi yang di-load otomatis saat pengunjung melakukan skrol ke bawah.
+                    Daftar 3 kartu gambar/video dengan ikon Play di bagian bawah halaman yang muncul saat pengunjung skrol. Klik gambar untuk upload/ganti thumbnail.
                   </p>
                 </div>
                 <button
@@ -920,19 +995,42 @@ export default function DashboardPage() {
                     key={item.id || idx}
                     className="border border-slate-800 bg-slate-950/60 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start"
                   >
-                    <div className="w-full md:w-44 aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0">
-                      {item.image && (
+                    <label className="group relative w-full md:w-48 aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-700 shrink-0 cursor-pointer">
+                      {item.image ? (
                         <img
                           src={item.image}
                           alt={item.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:opacity-60 transition-opacity"
                         />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
+                          No Image
+                        </div>
                       )}
-                    </div>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-blue-600 px-2.5 py-1 rounded shadow">
+                          <Upload className="w-3 h-3" />
+                          <span>
+                            {uploadingThumb === `feat_${idx}` ? 'Uploading...' : 'Ganti Thumbnail'}
+                          </span>
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const url = await uploadImageFile(file, `feat_${idx}`);
+                          if (url) updateFeaturedItem(idx, 'image', url);
+                        }}
+                      />
+                    </label>
 
                     <div className="flex-1 w-full space-y-3 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-300">Kartu #{idx + 1}</span>
+                        <span className="font-bold text-slate-300">Thumbnail Kartu #{idx + 1}</span>
                         <button
                           type="button"
                           onClick={() => removeFeaturedItem(idx)}
@@ -955,13 +1053,34 @@ export default function DashboardPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-slate-400 mb-1">Thumbnail Image URL</label>
-                          <input
-                            type="text"
-                            value={item.image}
-                            onChange={(e) => updateFeaturedItem(idx, 'image', e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
-                          />
+                          <label className="block text-slate-400 mb-1">
+                            Thumbnail Image (URL atau Upload)
+                          </label>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              value={item.image}
+                              onChange={(e) => updateFeaturedItem(idx, 'image', e.target.value)}
+                              className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
+                            />
+                            <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold shrink-0">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>
+                                {uploadingThumb === `feat_${idx}` ? '...' : 'Upload'}
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const url = await uploadImageFile(file, `feat_${idx}`);
+                                  if (url) updateFeaturedItem(idx, 'image', url);
+                                }}
+                              />
+                            </label>
+                          </div>
                         </div>
 
                         <div>

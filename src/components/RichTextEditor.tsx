@@ -134,9 +134,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setShowImageModal(false);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.url) {
+        setImageUrl(json.url);
+        return;
+      }
+    } catch (err) {
+      console.error('Upload failed, using fallback:', err);
+    }
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
