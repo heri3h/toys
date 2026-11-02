@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SiteData, AdSlotConfig, Article, FeaturedItem } from '@/types';
+import { RichTextEditor } from '@/components/RichTextEditor';
 import {
   FileText,
   DollarSign,
@@ -874,22 +875,16 @@ export default function DashboardPage() {
                     </div>
 
                     <div>
-                      <label className="block text-slate-300 font-semibold mb-1">
-                        Article HTML Content
+                      <label className="block text-slate-300 font-semibold mb-1.5">
+                        Isi Artikel (Visual Blog Editor &amp; Format Penulisan)
                       </label>
-                      <textarea
-                        rows={12}
+                      <RichTextEditor
                         value={currentArticle.content || ''}
-                        onChange={(e) =>
-                          updateArticle(selectedArticleIdx, 'content', e.target.value)
+                        onChange={(html) => updateArticle(selectedArticleIdx, 'content', html)}
+                        onUpdateReadingTime={(rt) =>
+                          updateArticle(selectedArticleIdx, 'readingTime', rt)
                         }
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 font-mono text-xs text-slate-200 focus:border-blue-500 outline-none"
                       />
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        Mendukung tag HTML (<code>&lt;p&gt;</code>, <code>&lt;h2&gt;</code>,{' '}
-                        <code>&lt;ul&gt;</code>). Paragraf pertama akan tampil di atas tombol{' '}
-                        <em>Read more...</em>
-                      </p>
                     </div>
                   </div>
                 </div>
