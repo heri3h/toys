@@ -11,29 +11,35 @@ import { ChevronDown, Play } from 'lucide-react';
 interface ArticlePageContentProps {
   initialData: SiteData;
   isAdTrafficInitial?: boolean;
+  activeSlug?: string;
 }
 
 export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
   initialData,
   isAdTrafficInitial = false,
+  activeSlug,
 }) => {
   const searchParams = useSearchParams();
   const gclid = searchParams.get('gclid');
+  const articleParam = searchParams.get('article');
   const isAdTraffic = Boolean(gclid) || isAdTrafficInitial;
 
   const [overlayActive, setOverlayActive] = useState<boolean>(false);
   const [isTruncated, setIsTruncated] = useState<boolean>(true); // Truncated by default
   const [hasScrolled, setHasScrolled] = useState<boolean>(false); // Bottom section loads only when scrolled
 
-  const { settings, ads, articles } = initialData;
-  const currentArticle = articles[0] || {
-    title: 'Vroom Vroom! The Most Fun Car Toys Every Kid Will Love',
-    category: 'Kids',
-    readingTime: '4 min read',
-    publishedDate: '31-05-2025',
-    author: 'Admin',
-    content: '<p>Loading...</p>',
-  };
+  const { settings, ads, articles, featuredItems } = initialData;
+  const targetSlug = activeSlug || articleParam;
+  const currentArticle =
+    (targetSlug ? articles.find((a) => a.slug === targetSlug) : articles[0]) ||
+    articles[0] || {
+      title: 'Vroom Vroom! The Most Fun Car Toys Every Kid Will Love',
+      category: 'Kids',
+      readingTime: '4 min read',
+      publishedDate: '31-05-2025',
+      author: 'Admin',
+      content: '<p>Loading...</p>',
+    };
 
   useEffect(() => {
     if (hasScrolled) return;
@@ -99,21 +105,30 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
     }
   }, [isAdTraffic, settings.truncateOnAdTrafficOnly]);
 
-  // Thumbnails matching the source site
-  const relatedThumbnails = [
-    {
-      title: 'Car Toys That Make Playtime Awesome',
-      image: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=600&q=80',
-    },
-    {
-      title: 'Zoom Into Adventure with These Cool Toy Cars',
-      image: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=600&q=80',
-    },
-    {
-      title: "Why Kids Can't Get Enough of Toy Cars",
-      image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
-    },
-  ];
+  // Thumbnails from dashboard config or defaults
+  const relatedThumbnails =
+    featuredItems && featuredItems.length > 0
+      ? featuredItems
+      : [
+          {
+            id: 'feat_1',
+            title: 'Car Toys That Make Playtime Awesome',
+            image: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=600&q=80',
+            targetUrl: '/?gclid=1',
+          },
+          {
+            id: 'feat_2',
+            title: 'Zoom Into Adventure with These Cool Toy Cars',
+            image: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=600&q=80',
+            targetUrl: '/?gclid=1',
+          },
+          {
+            id: 'feat_3',
+            title: "Why Kids Can't Get Enough of Toy Cars",
+            image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
+            targetUrl: '/?gclid=1',
+          },
+        ];
 
   return (
     <div className="min-h-[102vh] bg-[#f0f0f0] font-sans text-[#1a1a1a]">
@@ -205,31 +220,35 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                 <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2">
                   Featured Videos & Games
                 </h3>
-                {relatedThumbnails.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                      loading="lazy"
-                    />
-                    {/* Play Button Icon */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-14 h-10 rounded-xl bg-black/80 group-hover:bg-red-600 transition-colors flex items-center justify-center text-white shadow-lg">
-                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                {relatedThumbnails.map((item, idx) => {
+                  const href = item.targetUrl || (gclid ? `/?gclid=${encodeURIComponent(gclid)}` : '/');
+                  return (
+                    <a
+                      key={item.id || idx}
+                      href={href}
+                      className="block group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                        loading="lazy"
+                      />
+                      {/* Play Button Icon */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-14 h-10 rounded-xl bg-black/80 group-hover:bg-red-600 transition-colors flex items-center justify-center text-white shadow-lg">
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        </div>
                       </div>
-                    </div>
-                    {/* Title Overlay */}
-                    <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                      <p className="text-white text-xs sm:text-sm font-semibold truncate">
-                        {item.title}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                      {/* Title Overlay */}
+                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                        <p className="text-white text-xs sm:text-sm font-semibold truncate">
+                          {item.title}
+                        </p>
+                      </div>
+                    </a>
+                  );
+                })}
               </div>
 
               {/* Bottom In-Article Ad */}

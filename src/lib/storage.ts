@@ -15,6 +15,7 @@ const DEFAULT_DATA: SiteData = {
     overlayTimeoutSeconds: 3,
     mobileAutoScrollToTopAd: true,
     truncateOnAdTrafficOnly: true,
+    adminPassword: "admin123",
   },
   ads: {
     sidebarLeft: {
@@ -106,7 +107,27 @@ const DEFAULT_DATA: SiteData = {
 
 <p>No matter which model revs up in your household, car toys offer timeless bonding and imaginative storytelling for generations!</p>`
     }
-  ]
+  ],
+  featuredItems: [
+    {
+      id: "feat_1",
+      title: "Car Toys That Make Playtime Awesome",
+      image: "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=600&q=80",
+      targetUrl: "/?gclid=1",
+    },
+    {
+      id: "feat_2",
+      title: "Zoom Into Adventure with These Cool Toy Cars",
+      image: "https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=600&q=80",
+      targetUrl: "/?gclid=1",
+    },
+    {
+      id: "feat_3",
+      title: "Why Kids Can't Get Enough of Toy Cars",
+      image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80",
+      targetUrl: "/?gclid=1",
+    },
+  ],
 };
 
 export function getSiteData(): SiteData {
@@ -120,7 +141,14 @@ export function getSiteData(): SiteData {
       return DEFAULT_DATA;
     }
     const raw = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw) as SiteData;
+    if (!parsed.featuredItems || parsed.featuredItems.length === 0) {
+      parsed.featuredItems = DEFAULT_DATA.featuredItems;
+    }
+    if (!parsed.settings.adminPassword) {
+      parsed.settings.adminPassword = DEFAULT_DATA.settings.adminPassword;
+    }
+    return parsed;
   } catch (error) {
     console.error("Error reading site data:", error);
     return DEFAULT_DATA;

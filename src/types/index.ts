@@ -18,6 +18,14 @@ export interface SiteSettings {
   overlayTimeoutSeconds: number; // e.g. 3
   mobileAutoScrollToTopAd: boolean;
   truncateOnAdTrafficOnly: boolean; // Truncate & Read More only for ad traffic
+  adminPassword?: string; // Password for /dashboard access
+}
+
+export interface FeaturedItem {
+  id: string;
+  title: string;
+  image: string;
+  targetUrl?: string; // Optional slug or URL when clicked
 }
 
 export interface Article {
@@ -45,4 +53,5 @@ export interface SiteData {
     interstitial: AdSlotConfig;
   };
   articles: Article[];
+  featuredItems?: FeaturedItem[];
 }

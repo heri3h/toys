@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, connection } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { getSiteData, saveSiteData } from '@/lib/storage';
 
 export async function GET() {
+  await connection();
   const data = getSiteData();
   return NextResponse.json(data);
 }
@@ -13,6 +15,7 @@ export async function POST(req: Request) {
     if (!success) {
       return NextResponse.json({ error: 'Failed to save configuration' }, { status: 500 });
     }
+    revalidatePath('/', 'layout');
     return NextResponse.json({ success: true, data: updated });
   } catch {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
