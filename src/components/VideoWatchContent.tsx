@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Eye,
   Clock,
+  Gamepad2,
 } from 'lucide-react';
 
 interface VideoWatchContentProps {
@@ -23,6 +24,27 @@ interface VideoWatchContentProps {
   otherVideos: FeaturedItem[];
 }
 
+function extractYouTubeId(input?: string): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  // Match standard YouTube URLs
+  const regExp =
+    /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
+  const match = trimmed.match(regExp);
+  if (match && match[1]) {
+    return match[1];
+  }
+
+  // If user pasted an 11-character YouTube ID directly
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return null;
+}
+
 export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
   siteData,
   currentVideo,
@@ -30,15 +52,21 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
   otherVideos,
 }) => {
   const searchParams = useSearchParams();
-  const { settings, ads, articles } = siteData;
+  const { settings, ads, articles, games } = siteData;
   const primaryArticle = articles[0];
 
   const gclid = searchParams.get('gclid');
   const isAdTraffic = Boolean(gclid);
   const gclidSuffix = `?gclid=${encodeURIComponent(gclid || '1')}`;
 
+  const youtubeId = extractYouTubeId(currentVideo.videoUrl);
+  const isMp4Video = Boolean(
+    !youtubeId && currentVideo.videoUrl && currentVideo.videoUrl.trim()
+  );
+
   // Player states
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [ytFacadeClicked, setYtFacadeClicked] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0); // 0 to 100
@@ -46,11 +74,17 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
   const [likeCount, setLikeCount] = useState(1420);
   const [showUpNextOverlay, setShowUpNextOverlay] = useState(false);
 
-  const hasRealVideo = Boolean(currentVideo.videoUrl && currentVideo.videoUrl.trim());
-
-  // Simulated 20-second progress bar when no .mp4 file is uploaded yet
+  // Reset state when switching videos
   useEffect(() => {
-    if (hasRealVideo) return;
+    setYtFacadeClicked(false);
+    setProgress(0);
+    setShowUpNextOverlay(false);
+    setIsPlaying(true);
+  }, [currentVideo.id]);
+
+  // Simulated 20-second progress bar when no .mp4 or YouTube URL is set yet
+  useEffect(() => {
+    if (youtubeId || isMp4Video) return;
     if (!isPlaying) return;
 
     const interval = setInterval(() => {
@@ -65,10 +99,10 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
     }, 200);
 
     return () => clearInterval(interval);
-  }, [hasRealVideo, isPlaying]);
+  }, [youtubeId, isMp4Video, isPlaying]);
 
   const togglePlay = () => {
-    if (hasRealVideo && videoRef.current) {
+    if (isMp4Video && videoRef.current) {
       if (videoRef.current.paused) {
         videoRef.current.play();
         setIsPlaying(true);
@@ -77,7 +111,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
         videoRef.current.pause();
         setIsPlaying(false);
       }
-    } else {
+    } else if (!youtubeId) {
       if (progress >= 100) {
         setProgress(0);
         setShowUpNextOverlay(false);
@@ -89,7 +123,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
   };
 
   const toggleMute = () => {
-    if (hasRealVideo && videoRef.current) {
+    if (isMp4Video && videoRef.current) {
       videoRef.current.muted = !isMuted;
     }
     setIsMuted(!isMuted);
@@ -147,9 +181,58 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
             </div>
           )}
 
-          {/* VIDEO PLAYER BOX */}
+          {/* VIDEO PLAYER BOX (Option B: YouTube Anti-Leak Iframe OR MP4 OR Smart Motion Player) */}
           <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-lg border border-gray-900 select-none">
-            {hasRealVideo ? (
+            {youtubeId ? (
+              !ytFacadeClicked ? (
+                /* Click-to-Play Facade so AdX ads render 100% first without YouTube JS contention */
+                <div
+                  onClick={() => setYtFacadeClicked(true)}
+                  className="group relative w-full h-full cursor-pointer overflow-hidden"
+                >
+                  <img
+                    src={currentVideo.image}
+                    alt={currentVideo.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/30" />
+                  <div className="absolute top-3 left-3 flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded bg-red-600 text-white text-[11px] font-bold uppercase tracking-wider shadow">
+                      ▶ Tap to Start Video
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-18 h-13 rounded-2xl bg-red-600 group-hover:bg-red-500 flex items-center justify-center text-white shadow-2xl transform group-hover:scale-110 transition-all">
+                      <Play className="w-8 h-8 fill-current ml-1" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/80 text-white text-xs font-mono">
+                    {currentVideo.duration || '01:48'}
+                  </div>
+                </div>
+              ) : (
+                /* YouTube Iframe with Anti-Leak Invisible Shields */
+                <div className="relative w-full h-full">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                    title={currentVideo.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                  {/* Anti-Leak Shield #1: Blocks top title link that would exit user to YouTube app */}
+                  <div
+                    className="absolute top-0 inset-x-0 h-14 z-10 bg-transparent"
+                    title={currentVideo.title}
+                  />
+                  {/* Anti-Leak Shield #2: Blocks bottom-right YouTube logo link */}
+                  <div
+                    className="absolute bottom-0 right-10 w-28 h-12 z-10 bg-transparent"
+                    title="Playing on Toy TV"
+                  />
+                </div>
+              )
+            ) : isMp4Video ? (
               <video
                 ref={videoRef}
                 src={currentVideo.videoUrl}
@@ -174,7 +257,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
                 className="w-full h-full object-contain bg-black"
               />
             ) : (
-              /* Smart Animated Motion Preview when no .mp4 file is uploaded yet */
+              /* Smart Animated Motion Preview when no .mp4 or YouTube URL is set yet */
               <div
                 onClick={togglePlay}
                 className="relative w-full h-full cursor-pointer overflow-hidden"
@@ -270,8 +353,8 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
               </div>
             )}
 
-            {/* Floating Unmute Button for Real Video */}
-            {hasRealVideo && isMuted && (
+            {/* Floating Unmute Button for MP4 Video */}
+            {isMp4Video && isMuted && (
               <button
                 type="button"
                 onClick={toggleMute}
@@ -281,7 +364,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
                 <span>Tap for Sound</span>
               </button>
             )}
-            {hasRealVideo && !isMuted && (
+            {isMp4Video && !isMuted && (
               <button
                 type="button"
                 onClick={toggleMute}
@@ -291,7 +374,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
               </button>
             )}
 
-            {/* "UP NEXT" END SCREEN OVERLAY (Drives Multi-Page Session Loop!) */}
+            {/* "UP NEXT" END SCREEN OVERLAY */}
             {showUpNextOverlay && (
               <div className="absolute inset-0 z-30 bg-black/85 flex flex-col items-center justify-center p-5 text-center space-y-3 animate-fadeIn">
                 <span className="text-[11px] font-bold uppercase tracking-widest text-red-400">
@@ -404,13 +487,14 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
             </div>
           )}
 
-          {/* UP NEXT / MORE VIDEOS LIST (Keeps YouTube GDN users clicking inside the site!) */}
+          {/* SECTION 1: UP NEXT / MORE VIDEOS LIST (Rectangular 16:9) */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                Up Next: More Toy Videos
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Play className="w-4 h-4 text-red-600 fill-current" />
+                <span>Up Next: More Toy Videos</span>
               </h3>
-              <span className="text-xs text-gray-400">Autoplay Enabled</span>
+              <span className="text-xs text-gray-400">HD Clips</span>
             </div>
 
             <div className="space-y-3">
@@ -459,6 +543,48 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
               })}
             </div>
           </div>
+
+          {/* SECTION 2: FEATURED GAMES (Square 1:1 Grid) */}
+          {games && games.length > 0 && (
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Gamepad2 className="w-4 h-4 text-emerald-600" />
+                  <span>Featured Games (Instant Play)</span>
+                </h3>
+                <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+                  No Download
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+                {games.map((game, idx) => (
+                  <a
+                    key={game.id || idx}
+                    href={`/play/${game.id || idx}${gclidSuffix}`}
+                    className="group relative aspect-square rounded-2xl overflow-hidden bg-neutral-900 border border-gray-200 shadow-xs hover:shadow-lg transition-all"
+                  >
+                    <img
+                      src={game.image}
+                      alt={game.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-emerald-600/95 text-white text-[10px] font-bold uppercase tracking-wider shadow">
+                      🎮 Play
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                      <p className="text-white text-xs font-bold truncate">{game.title}</p>
+                      <p className="text-emerald-300 text-[10px] font-medium truncate">
+                        {game.category || 'Racing'} • {game.plays || '45K plays'}
+                      </p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Bottom In-Article Ad */}
           {ads.inArticle.enabled && (

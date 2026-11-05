@@ -6,7 +6,7 @@ import { SiteData } from '@/types';
 import { AdUnit } from '@/components/AdUnit';
 import { AdOverlay } from '@/components/AdOverlay';
 import { Navbar } from '@/components/Navbar';
-import { ChevronDown, Play } from 'lucide-react';
+import { ChevronDown, Play, Gamepad2 } from 'lucide-react';
 
 interface ArticlePageContentProps {
   initialData: SiteData;
@@ -28,7 +28,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
   const [isTruncated, setIsTruncated] = useState<boolean>(true); // Truncated by default
   const [hasScrolled, setHasScrolled] = useState<boolean>(false); // Bottom section loads only when scrolled
 
-  const { settings, ads, articles, featuredItems } = initialData;
+  const { settings, ads, articles, featuredItems, games } = initialData;
   const targetSlug = activeSlug || articleParam;
   const currentArticle =
     (targetSlug ? articles.find((a) => a.slug === targetSlug) : articles[0]) ||
@@ -212,14 +212,19 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
             )}
           </div>
 
-          {/* Bottom Section (Featured Videos & In-Article Ad) - Only loaded after user scrolls */}
+          {/* Bottom Section (Featured Videos & Featured Games) - Only loaded after user scrolls */}
           {hasScrolled && (
-            <div className="transition-opacity duration-500 ease-in opacity-100">
-              {/* Video Cards / Play Thumbs Section (Matching original) */}
+            <div className="transition-opacity duration-500 ease-in opacity-100 space-y-6">
+              {/* SECTION 1: FEATURED VIDEOS (Rectangular 16:9 Thumbnails) */}
               <div className="mt-6 space-y-4 pt-4 border-t border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2">
-                  Featured Videos & Games
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <Play className="w-4 h-4 text-red-600 fill-current" />
+                    <span>Featured Videos</span>
+                  </h3>
+                  <span className="text-[11px] text-gray-400 font-medium">HD Clips</span>
+                </div>
+
                 {relatedThumbnails.map((item, idx) => {
                   const defaultWatchPath = `/watch/${item.id || `feat_${idx + 1}`}`;
                   const rawTarget =
@@ -270,6 +275,63 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                   );
                 })}
               </div>
+
+              {/* SECTION 2: FEATURED GAMES (Square 1:1 Grid from GameMonetize Database) */}
+              {games && games.length > 0 && (
+                <div className="pt-5 border-t border-gray-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <Gamepad2 className="w-4 h-4 text-emerald-600" />
+                      <span>Featured Games (Instant Play)</span>
+                    </h3>
+                    <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+                      No Download
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+                    {games.map((game, idx) => {
+                      const gameHref = `/play/${game.id || idx}?gclid=${encodeURIComponent(
+                        gclid || '1'
+                      )}`;
+                      return (
+                        <a
+                          key={game.id || idx}
+                          href={gameHref}
+                          className="group relative aspect-square rounded-2xl overflow-hidden bg-neutral-900 border border-gray-200 shadow-xs hover:shadow-lg transition-all cursor-pointer"
+                        >
+                          <img
+                            src={game.image}
+                            alt={game.title}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
+                          />
+                          {/* Top Badge */}
+                          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-emerald-600/95 text-white text-[10px] font-bold uppercase tracking-wider shadow">
+                            🎮 Play
+                          </div>
+
+                          {/* Center Hover Play Button */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-11 h-11 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
+                              <Play className="w-5 h-5 fill-current ml-0.5" />
+                            </div>
+                          </div>
+
+                          {/* Bottom Title Overlay */}
+                          <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
+                            <p className="text-white text-xs font-bold truncate">{game.title}</p>
+                            <p className="text-emerald-300 text-[10px] font-medium truncate">
+                              {game.category || 'Racing'} • {game.plays || '45K plays'}
+                            </p>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Bottom In-Article Ad */}
               {!isTruncated && ads.inArticle.enabled && (

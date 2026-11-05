@@ -26,10 +26,22 @@ export interface FeaturedItem {
   title: string;
   image: string;
   targetUrl?: string; // Optional slug or URL when clicked (defaults to /watch/[id]?gclid=1)
-  videoUrl?: string; // Optional MP4/WebM URL or uploaded video path
+  videoUrl?: string; // YouTube URL/ID (Option B) OR MP4/WebM URL/uploaded path
   duration?: string; // e.g. "01:45"
   views?: string; // e.g. "42.8K views"
   description?: string; // Companion article text on the video watch page for AdX safety
+}
+
+export interface GameItem {
+  id: string;
+  title: string;
+  image: string; // Local compressed 1:1 square WebP path (/api/uploads/...)
+  originalThumb?: string; // Original GameMonetize thumb URL
+  embedUrl: string; // e.g. https://html5.gamemonetize.com/xxxxx/
+  category?: string;
+  description?: string;
+  instructions?: string;
+  plays?: string; // e.g. "54.2K plays"
 }
 
 export interface Article {
@@ -58,4 +70,5 @@ export interface SiteData {
   };
   articles: Article[];
   featuredItems?: FeaturedItem[];
+  games?: GameItem[];
 }

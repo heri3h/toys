@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { SiteData, AdSlotConfig, Article, FeaturedItem } from '@/types';
+import { SiteData, AdSlotConfig, Article, FeaturedItem, GameItem } from '@/types';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import {
   FileText,
@@ -21,12 +21,27 @@ import {
   Check,
   Upload,
   Zap,
+  Gamepad2,
+  Search,
 } from 'lucide-react';
 import { compressImageToWebP } from '@/lib/imageCompressor';
 
+interface RawGameMonetizeItem {
+  id: string;
+  title: string;
+  description: string;
+  instructions: string;
+  url: string;
+  category: string;
+  tags: string;
+  thumb: string;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<SiteData | null>(null);
-  const [activeTab, setActiveTab] = useState<'ads' | 'article' | 'featured' | 'settings'>('ads');
+  const [activeTab, setActiveTab] = useState<
+    'ads' | 'article' | 'featured' | 'games' | 'settings'
+  >('ads');
   const [selectedArticleIdx, setSelectedArticleIdx] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,6 +49,14 @@ export default function DashboardPage() {
   const [uploadingThumb, setUploadingThumb] = useState<string | null>(null);
   const [compressionPreset, setCompressionPreset] = useState<'fast' | 'optimal' | 'hd'>('optimal');
   const [compressionStats, setCompressionStats] = useState<Record<string, string>>({});
+
+  // GameMonetize Catalog states
+  const [gmCatalog, setGmCatalog] = useState<RawGameMonetizeItem[]>([]);
+  const [gmLoading, setGmLoading] = useState(false);
+  const [gmCategory, setGmCategory] = useState('Racing');
+  const [gmQuery, setGmQuery] = useState('');
+  const [gmPage, setGmPage] = useState(1);
+  const [compressingGameId, setCompressingGameId] = useState<string | null>(null);
 
   // Auth states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -100,12 +123,33 @@ export default function DashboardPage() {
     return null;
   };
 
+  const fetchGameCatalog = async (cat = gmCategory, q = gmQuery, page = gmPage) => {
+    setGmLoading(true);
+    try {
+      const params = new URLSearchParams({
+        category: cat,
+        q,
+        page: String(page),
+      });
+      const res = await fetch(`/api/gamemonetize?${params.toString()}`);
+      const json = await res.json();
+      if (json.items) {
+        setGmCatalog(json.items);
+      }
+    } catch (err) {
+      console.error('Error loading GameMonetize catalog:', err);
+    } finally {
+      setGmLoading(false);
+    }
+  };
+
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('toys_admin_auth');
     if (savedAuth === 'true') {
       setIsAuthenticated(true);
     }
     fetchData();
+    fetchGameCatalog('Racing', '', 1);
   }, []);
 
   const formatSizesToString = (sizes: number[][]): string => {
@@ -336,6 +380,99 @@ export default function DashboardPage() {
     setData({ ...data, featuredItems: list });
   };
 
+  // Games Database Management (GameMonetize 1-Click Thumbnail Selection + Auto-WebP)
+  const autoSaveSiteData = async (nextData: SiteData, statusMsg: string) => {
+    setData(nextData);
+    try {
+      const res = await fetch('/api/site-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextData),
+      });
+      if (res.ok) {
+        setSaveStatus(statusMsg);
+        setTimeout(() => setSaveStatus(null), 3000);
+      }
+    } catch (err) {
+      console.error('Auto-save error:', err);
+    }
+  };
+
+  const toggleGameFromCatalog = async (gm: RawGameMonetizeItem) => {
+    if (!data || compressingGameId) return;
+    const currentGames = [...(data.games || [])];
+    const existingIdx = currentGames.findIndex(
+      (g) => g.id === `gm_${gm.id}` || g.embedUrl === gm.url
+    );
+
+    // If already in database, clicking the thumbnail removes it
+    if (existingIdx !== -1) {
+      const nextGames = currentGames.filter((_, i) => i !== existingIdx);
+      const nextData = { ...data, games: nextGames };
+      await autoSaveSiteData(nextData, `Game "${gm.title}" dihapus dari database.`);
+      return;
+    }
+
+    // Otherwise, download thumbnail, crop 1:1 square & compress to WebP in data/uploads/
+    setCompressingGameId(gm.id);
+    try {
+      let localThumbUrl = gm.thumb;
+      const res = await fetch('/api/gamemonetize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: gm.id, thumbUrl: gm.thumb }),
+      });
+      const json = await res.json();
+      if (json.url) {
+        localThumbUrl = json.url;
+        if (json.summary) {
+          setCompressionStats((prev) => ({
+            ...prev,
+            [`gm_${gm.id}`]: json.summary,
+          }));
+        }
+      }
+
+      const newGame: GameItem = {
+        id: `gm_${gm.id}`,
+        title: gm.title,
+        image: localThumbUrl,
+        originalThumb: gm.thumb,
+        embedUrl: gm.url,
+        category: gm.category || 'Racing',
+        description: gm.description || '',
+        instructions: gm.instructions || '',
+        plays: `${(Math.floor(Math.random() * 55) + 25).toFixed(1)}K plays`,
+      };
+
+      const nextGames = [newGame, ...currentGames];
+      const nextData = { ...data, games: nextGames };
+      await autoSaveSiteData(
+        nextData,
+        `success: "${gm.title}" dikompres (WebP 1:1) & ditambahkan ke Database!`
+      );
+    } catch (err) {
+      console.error('Failed to add game from catalog:', err);
+    } finally {
+      setCompressingGameId(null);
+    }
+  };
+
+  const removeGameFromDb = async (idx: number) => {
+    if (!data) return;
+    const nextGames = (data.games || []).filter((_, i) => i !== idx);
+    const nextData = { ...data, games: nextGames };
+    await autoSaveSiteData(nextData, 'success: Game dihapus dari database.');
+  };
+
+  const updateGameItem = (idx: number, field: keyof GameItem, value: string) => {
+    if (!data) return;
+    const list = [...(data.games || [])];
+    if (!list[idx]) return;
+    list[idx] = { ...list[idx], [field]: value };
+    setData({ ...data, games: list });
+  };
+
   const copyLink = (slug: string) => {
     const url = `${window.location.origin}/${slug}?gclid=1`;
     navigator.clipboard.writeText(url);
@@ -522,8 +659,29 @@ export default function DashboardPage() {
           >
             <PlaySquare className="w-4 h-4 shrink-0" />
             <div>
-              <p className="font-semibold leading-none">Featured Cards</p>
-              <p className="text-[11px] opacity-75 mt-1">Bottom video thumbnails &amp; links</p>
+              <p className="font-semibold leading-none">
+                Featured Videos ({(data.featuredItems || []).length})
+              </p>
+              <p className="text-[11px] opacity-75 mt-1">16:9 video thumbs, YouTube &amp; MP4</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('games')}
+            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-3 transition-colors ${
+              activeTab === 'games'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300'
+            }`}
+          >
+            <Gamepad2 className="w-4 h-4 shrink-0" />
+            <div>
+              <p className="font-semibold leading-none">
+                Games Database ({(data.games || []).length})
+              </p>
+              <p className="text-[11px] opacity-75 mt-1">
+                1:1 GameMonetize catalog &amp; WebP
+              </p>
             </div>
           </button>
 
@@ -1229,10 +1387,10 @@ export default function DashboardPage() {
                         <div>
                           <div className="flex items-center justify-between mb-1">
                             <label className="text-slate-400">
-                              File Video Pendek .MP4 / URL Video (Opsional)
+                              Link YouTube (Anti-Leak) / File .MP4 (Opsi B)
                             </label>
                             <span className="text-[10px] text-emerald-400">
-                              Kosong = Smart Motion Player
+                              YouTube / MP4 / Auto-Motion
                             </span>
                           </div>
                           <div className="flex gap-1.5">
@@ -1240,7 +1398,7 @@ export default function DashboardPage() {
                               type="text"
                               value={item.videoUrl || ''}
                               onChange={(e) => updateFeaturedItem(idx, 'videoUrl', e.target.value)}
-                              placeholder="Kosongkan untuk auto-animasi, atau upload .mp4"
+                              placeholder="https://youtube.com/watch?v=... atau upload .mp4"
                               className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
                             />
                             <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-semibold shrink-0">
@@ -1316,6 +1474,264 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3B: GAMES DATABASE & GAMEMONETIZE 1-CLICK CATALOG */}
+          {activeTab === 'games' && (
+            <div className="space-y-6">
+              {/* Active Games Database */}
+              <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold text-white">
+                        Database Game Aktif ({(data.games || []).length} Game)
+                      </h2>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+                        <Zap className="w-3 h-3" />
+                        <span>1:1 Square WebP</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Game di bawah ini tampil di bagian <strong>Featured Games (Persegi 1:1)</strong> pada halaman pengunjung dengan konsep <strong>Click-to-Play</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {(data.games || []).length === 0 ? (
+                  <div className="text-center py-8 bg-slate-950/50 rounded-xl border border-slate-800 text-xs text-slate-400">
+                    Belum ada game di database. Klik salah satu thumbnail dari katalog <strong>GameMonetize</strong> di bawah untuk menambahkan!
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {(data.games || []).map((game, idx) => (
+                      <div
+                        key={game.id || idx}
+                        className="group relative bg-slate-950 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-sm"
+                      >
+                        <div className="relative aspect-square w-full bg-slate-900 overflow-hidden">
+                          <img
+                            src={game.image}
+                            alt={game.title}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold shadow">
+                            #{idx + 1} • 1:1 WebP
+                          </div>
+                          {compressionStats[game.id] && (
+                            <div className="absolute bottom-2 inset-x-2 px-1.5 py-0.5 rounded bg-black/85 text-emerald-400 text-[9px] font-mono text-center truncate">
+                              ⚡ {compressionStats[game.id]}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-2.5 space-y-2 text-xs">
+                          <input
+                            type="text"
+                            value={game.title}
+                            onChange={(e) => updateGameItem(idx, 'title', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs font-bold text-white"
+                          />
+                          <div className="flex items-center justify-between gap-1 pt-1">
+                            <Link
+                              href={`/play/${game.id}?gclid=1`}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 hover:underline"
+                            >
+                              <span>Preview Play</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => removeGameFromDb(idx)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 text-[10px] font-semibold"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Hapus</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* GameMonetize Live Catalog Browser (Click Thumbnail to Add/Remove) */}
+              <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-6 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Gamepad2 className="w-5 h-5 text-emerald-400" />
+                      <span>Katalog GameMonetize.com (Klik Thumbnail untuk Pilih)</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Klik langsung pada gambar thumbnail game di bawah untuk <strong>otomatis mengunduh, memotong ke Persegi 1:1 (300×300), mengompres ke WebP di <code>data/uploads/</code>, dan menyimpannya ke Database Game</strong>!
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => fetchGameCatalog(gmCategory, gmQuery, gmPage)}
+                    disabled={gmLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${gmLoading ? 'animate-spin' : ''}`} />
+                    <span>Refresh Katalog</span>
+                  </button>
+                </div>
+
+                {/* Filter Kategori & Search */}
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {['Racing', 'Driving', 'Arcade', 'Action', 'Hypercasual', '3D', 'Boys', 'All'].map(
+                      (cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            setGmCategory(cat);
+                            setGmPage(1);
+                            fetchGameCatalog(cat, gmQuery, 1);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                            gmCategory === cat
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      fetchGameCatalog(gmCategory, gmQuery, 1);
+                    }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <div className="relative flex-1 sm:w-52">
+                      <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={gmQuery}
+                        onChange={(e) => setGmQuery(e.target.value)}
+                        placeholder="Cari: car, truck, drift..."
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-100 outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                    >
+                      Cari
+                    </button>
+                  </form>
+                </div>
+
+                {/* Grid Thumbnail Katalog GameMonetize */}
+                {gmLoading ? (
+                  <div className="py-14 flex items-center justify-center gap-2 text-xs text-slate-400">
+                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
+                    <span>Mengambil daftar game dari GameMonetize.com...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                    {gmCatalog.map((gm) => {
+                      const isAdded = (data.games || []).some(
+                        (g) => g.id === `gm_${gm.id}` || g.embedUrl === gm.url
+                      );
+                      const isCompressing = compressingGameId === gm.id;
+
+                      return (
+                        <button
+                          key={gm.id}
+                          type="button"
+                          onClick={() => toggleGameFromCatalog(gm)}
+                          disabled={Boolean(compressingGameId)}
+                          className={`group relative text-left rounded-xl overflow-hidden border-2 transition-all cursor-pointer flex flex-col ${
+                            isAdded
+                              ? 'border-emerald-500 bg-emerald-950/20 shadow-lg shadow-emerald-500/10'
+                              : 'border-slate-800 bg-slate-950 hover:border-slate-600'
+                          }`}
+                        >
+                          <div className="relative aspect-square w-full bg-slate-900 overflow-hidden">
+                            <img
+                              src={gm.thumb}
+                              alt={gm.title}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+
+                            {/* Status Overlay */}
+                            {isCompressing ? (
+                              <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center p-2 text-center gap-1.5">
+                                <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" />
+                                <span className="text-[10px] font-bold text-emerald-300">
+                                  Kompres WebP 1:1...
+                                </span>
+                              </div>
+                            ) : isAdded ? (
+                              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950 text-[10px] font-extrabold flex items-center gap-1 shadow-md">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                                <span>Terpilih</span>
+                              </div>
+                            ) : (
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-extrabold shadow-lg">
+                                  + Klik Tambah
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="p-2.5">
+                            <p className="text-xs font-bold text-slate-100 truncate">{gm.title}</p>
+                            <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                              {gm.category || 'Racing'}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                  <span className="text-slate-400">Halaman Katalog #{gmPage}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={gmPage <= 1 || gmLoading}
+                      onClick={() => {
+                        const prev = Math.max(1, gmPage - 1);
+                        setGmPage(prev);
+                        fetchGameCatalog(gmCategory, gmQuery, prev);
+                      }}
+                      className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200"
+                    >
+                      &larr; Sebelumnya
+                    </button>
+                    <button
+                      type="button"
+                      disabled={gmLoading}
+                      onClick={() => {
+                        const next = gmPage + 1;
+                        setGmPage(next);
+                        fetchGameCatalog(gmCategory, gmQuery, next);
+                      }}
+                      className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200"
+                    >
+                      Berikutnya &rarr;
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

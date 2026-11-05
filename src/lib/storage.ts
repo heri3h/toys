@@ -137,6 +137,38 @@ const DEFAULT_DATA: SiteData = {
       description: "Discover the top-rated toy vehicles of the season! Interactive headlights, realistic engine sounds, and rechargeable 2.4GHz remote controls make these toy cars an unforgettable gift for kids of every age."
     },
   ],
+  games: [
+    {
+      id: "gm_car_stunt_1",
+      title: "Mega Ramp Car Stunts 3D",
+      image: "https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=400&h=400&q=80",
+      embedUrl: "https://html5.gamemonetize.com/7y2r8p9x3v4m1n6q5w8e2r4t6y8u0i1o/",
+      category: "Racing",
+      plays: "64.2K plays",
+      description: "Experience high-flying monster truck and supercar jumps across sky-high mega ramps! Choose your favorite turbo racing car, hit the nitro booster, and land impossible 360-degree flips.",
+      instructions: "Use Arrow Keys or WASD to drive and steer. Press Spacebar for handbrake and Shift for Nitro Boost."
+    },
+    {
+      id: "gm_rc_drift_2",
+      title: "Toy Car Drift Racers",
+      image: "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=400&h=400&q=80",
+      embedUrl: "https://html5.gamemonetize.com/3k9m2n4b6v8c1x5z7l0p9o8i7u6y5t4r/",
+      category: "Racing",
+      plays: "51.8K plays",
+      description: "Race miniature RC toy cars around bedroom tracks, kitchen tables, and backyard obstacle courses! Collect coins to unlock faster monster trucks and sleek sports cars.",
+      instructions: "Tap Left/Right on mobile or use Arrow Keys on desktop to drift around sharp corners."
+    },
+    {
+      id: "gm_monster_truck_3",
+      title: "Offroad Monster Truck Hero",
+      image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&h=400&q=80",
+      embedUrl: "https://html5.gamemonetize.com/9p0o8i7u6y5t4r3e2w1q0z9x8c7v6b5n/",
+      category: "Driving",
+      plays: "48.5K plays",
+      description: "Crush obstacles with giant suspension tires in this action-packed monster truck driving game! Climb steep hills, cross muddy rivers, and reach the finish line without flipping over.",
+      instructions: "Use Gas and Brake pedals on screen or Up/Down Arrow Keys to balance your truck."
+    }
+  ],
 };
 
 export function getSiteData(): SiteData {
@@ -153,6 +185,9 @@ export function getSiteData(): SiteData {
     const parsed = JSON.parse(raw) as SiteData;
     if (!parsed.featuredItems || parsed.featuredItems.length === 0) {
       parsed.featuredItems = DEFAULT_DATA.featuredItems;
+    }
+    if (!parsed.games) {
+      parsed.games = DEFAULT_DATA.games;
     }
     if (!parsed.settings.adminPassword) {
       parsed.settings.adminPassword = DEFAULT_DATA.settings.adminPassword;
