@@ -58,6 +58,10 @@ export default function DashboardPage() {
   const [gmPage, setGmPage] = useState(1);
   const [compressingGameId, setCompressingGameId] = useState<string | null>(null);
 
+  // YouTube Auto-Fetch & WebP Compression states
+  const [ytQuickUrl, setYtQuickUrl] = useState('');
+  const [fetchingYt, setFetchingYt] = useState<string | null>(null);
+
   // Auth states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -395,6 +399,105 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Auto-save error:', err);
+    }
+  };
+
+  const quickAddYouTubeVideo = async () => {
+    if (!data || !ytQuickUrl.trim() || fetchingYt) return;
+    setFetchingYt('quick');
+    try {
+      const res = await fetch('/api/youtube', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: ytQuickUrl.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Gagal mengambil data dari link YouTube.');
+        return;
+      }
+
+      const newId = `feat_${Date.now()}`;
+      const newCard: FeaturedItem = {
+        id: newId,
+        title: json.title || 'YouTube Video',
+        image: json.thumbnailUrl,
+        videoUrl: json.videoUrl,
+        targetUrl: `/watch/${newId}?gclid=1`,
+        duration: '03:20',
+        views: `${(Math.floor(Math.random() * 80) + 15).toFixed(1)}K views`,
+        description: json.author
+          ? `Watch "${json.title}" by ${json.author} — action-packed highlights and full interactive video preview.`
+          : `Watch "${json.title}" — action-packed highlights and full interactive video preview.`,
+      };
+
+      const nextList = [newCard, ...(data.featuredItems || [])];
+      if (json.summary) {
+        setCompressionStats((prev) => ({
+          ...prev,
+          feat_0: json.summary,
+        }));
+      }
+      setYtQuickUrl('');
+      await autoSaveSiteData(
+        { ...data, featuredItems: nextList },
+        `Video YouTube "${json.title}" ditambahkan & thumbnail dikompres (${json.summary || 'WebP 16:9'})!`
+      );
+    } catch (err) {
+      console.error('Error quick-adding YouTube video:', err);
+      alert('Terjadi kesalahan saat memproses link YouTube.');
+    } finally {
+      setFetchingYt(null);
+    }
+  };
+
+  const syncYouTubeCard = async (idx: number) => {
+    if (!data || fetchingYt) return;
+    const item = (data.featuredItems || [])[idx];
+    if (!item || !item.videoUrl?.trim()) {
+      alert('Masukkan link YouTube terlebih dahulu pada kolom Link YouTube.');
+      return;
+    }
+
+    setFetchingYt(`feat_${idx}`);
+    try {
+      const res = await fetch('/api/youtube', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: item.videoUrl.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Bukan link YouTube yang valid.');
+        return;
+      }
+
+      const nextList = [...(data.featuredItems || [])];
+      nextList[idx] = {
+        ...nextList[idx],
+        title: json.title || nextList[idx].title,
+        image: json.thumbnailUrl || nextList[idx].image,
+        videoUrl: json.videoUrl || nextList[idx].videoUrl,
+        description:
+          nextList[idx].description ||
+          `Watch "${json.title}" — action-packed highlights and full interactive video preview.`,
+      };
+
+      if (json.summary) {
+        setCompressionStats((prev) => ({
+          ...prev,
+          [`feat_${idx}`]: json.summary,
+        }));
+      }
+
+      await autoSaveSiteData(
+        { ...data, featuredItems: nextList },
+        `Judul & Thumbnail YouTube diperbarui (${json.summary || 'WebP 16:9'})!`
+      );
+    } catch (err) {
+      console.error('Error syncing YouTube card:', err);
+    } finally {
+      setFetchingYt(null);
     }
   };
 
@@ -1222,25 +1325,68 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-bold text-white">
-                      Thumbnail Video &amp; Games Bawah (Featured Cards)
+                      Pengelola Featured Videos (YouTube Embed / MP4)
                     </h2>
                     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
                       <Zap className="w-3 h-3" />
-                      <span>Auto-WebP (Max 480px)</span>
+                      <span>Auto-WebP 16:9 (data/uploads)</span>
                     </span>
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    Daftar 3 kartu gambar/video dengan ikon Play di bagian bawah halaman yang muncul saat pengunjung skrol. Gambar otomatis dikompres ke WebP ukuran ringan.
+                    Daftar video persegi panjang (16:9) di halaman artikel &amp; halaman <code>/watch/[id]</code>. Mendukung embed YouTube (Click-to-Play + Anti-Leak) maupun upload MP4.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={addFeaturedItem}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Tambah Kartu</span>
+                  <span>Tambah Kartu Manual</span>
                 </button>
+              </div>
+
+              {/* Quick-Add YouTube Bar */}
+              <div className="bg-red-950/20 border border-red-500/30 rounded-xl p-4 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <PlaySquare className="w-4 h-4 text-red-400" />
+                    <span className="text-xs font-bold text-white">
+                      Tambah Cepat Video dari Link YouTube (Otomatis Judul + Kompres Thumbnail 16:9 WebP)
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-emerald-400 font-medium">
+                    Simpan ke folder: /api/uploads/*.webp
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={ytQuickUrl}
+                    onChange={(e) => setYtQuickUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        quickAddYouTubeVideo();
+                      }
+                    }}
+                    placeholder="Paste link YouTube di sini (contoh: https://www.youtube.com/watch?v=... atau https://youtu.be/...)"
+                    className="flex-1 bg-slate-950 border border-slate-700 focus:border-red-500 rounded-lg px-3.5 py-2 text-xs text-slate-100 font-mono outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={quickAddYouTubeVideo}
+                    disabled={fetchingYt !== null || !ytQuickUrl.trim()}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs shrink-0 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>
+                      {fetchingYt === 'quick'
+                        ? 'Mengambil & Mengompres Thumb...'
+                        : '+ Ambil dari YouTube'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -1401,6 +1547,18 @@ export default function DashboardPage() {
                               placeholder="https://youtube.com/watch?v=... atau upload .mp4"
                               className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
                             />
+                            <button
+                              type="button"
+                              onClick={() => syncYouTubeCard(idx)}
+                              disabled={fetchingYt !== null}
+                              title="Tarik Judul & Kompres Thumbnail 16:9 dari Link YouTube"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-semibold shrink-0 cursor-pointer"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                              <span>
+                                {fetchingYt === `feat_${idx}` ? 'Proses...' : 'Tarik YT'}
+                              </span>
+                            </button>
                             <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-semibold shrink-0">
                               <Upload className="w-3.5 h-3.5" />
                               <span>
