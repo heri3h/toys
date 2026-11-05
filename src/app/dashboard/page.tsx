@@ -82,6 +82,24 @@ export default function DashboardPage() {
     return null;
   };
 
+  const uploadVideoFile = async (file: File, targetId: string): Promise<string | null> => {
+    setUploadingThumb(targetId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.url) {
+        return json.url as string;
+      }
+    } catch (err) {
+      console.error('Video upload error:', err);
+    } finally {
+      setUploadingThumb(null);
+    }
+    return null;
+  };
+
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('toys_admin_auth');
     if (savedAuth === 'true') {
@@ -297,12 +315,17 @@ export default function DashboardPage() {
   const addFeaturedItem = () => {
     if (!data) return;
     const list = [...(data.featuredItems || [])];
+    const newId = `feat_${Date.now()}`;
     list.push({
-      id: `feat_${Date.now()}`,
+      id: newId,
       title: 'Awesome Toy Cars in Action',
       image:
         'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
-      targetUrl: '/?gclid=1',
+      targetUrl: `/watch/${newId}?gclid=1`,
+      duration: '01:45',
+      views: '38.4K views',
+      description:
+        'Watch how high-speed pullback racing cars and remote-controlled monster trucks conquer indoor obstacle courses with ease!',
     });
     setData({ ...data, featuredItems: list });
   };
@@ -1104,10 +1127,10 @@ export default function DashboardPage() {
                     </label>
 
                     <div className="flex-1 w-full space-y-3 text-xs">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-slate-300">
-                            Thumbnail Kartu #{idx + 1}
+                            Kartu Video #{idx + 1}
                           </span>
                           {compressionStats[`feat_${idx}`] && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
@@ -1116,24 +1139,59 @@ export default function DashboardPage() {
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removeFeaturedItem(idx)}
-                          className="flex items-center gap-1 text-rose-400 hover:text-rose-300 text-xs"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Hapus</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}
+                            target="_blank"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 text-[11px] font-semibold"
+                          >
+                            <PlaySquare className="w-3.5 h-3.5" />
+                            <span>Preview Watch Page</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => removeFeaturedItem(idx)}
+                            className="flex items-center gap-1 text-rose-400 hover:text-rose-300 text-xs"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="block text-slate-400 mb-1">Judul Kartu / Video</label>
-                        <input
-                          type="text"
-                          value={item.title}
-                          onChange={(e) => updateFeaturedItem(idx, 'title', e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-100"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="block text-slate-400 mb-1">Judul Kartu / Video</label>
+                          <input
+                            type="text"
+                            value={item.title}
+                            onChange={(e) => updateFeaturedItem(idx, 'title', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-100"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 mb-1">Badge Durasi</label>
+                          <input
+                            type="text"
+                            value={item.duration || '01:45'}
+                            onChange={(e) => updateFeaturedItem(idx, 'duration', e.target.value)}
+                            placeholder="01:45"
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 mb-1">Badge Views</label>
+                          <input
+                            type="text"
+                            value={item.views || '42.8K views'}
+                            onChange={(e) => updateFeaturedItem(idx, 'views', e.target.value)}
+                            placeholder="42.8K views"
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200"
+                          />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1170,7 +1228,59 @@ export default function DashboardPage() {
 
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <label className="text-slate-400">Target Link saat Diklik</label>
+                            <label className="text-slate-400">
+                              File Video Pendek .MP4 / URL Video (Opsional)
+                            </label>
+                            <span className="text-[10px] text-emerald-400">
+                              Kosong = Smart Motion Player
+                            </span>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              value={item.videoUrl || ''}
+                              onChange={(e) => updateFeaturedItem(idx, 'videoUrl', e.target.value)}
+                              placeholder="Kosongkan untuk auto-animasi, atau upload .mp4"
+                              className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
+                            />
+                            <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-semibold shrink-0">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>
+                                {uploadingThumb === `vid_${idx}` ? 'Uploading...' : 'MP4'}
+                              </span>
+                              <input
+                                type="file"
+                                accept="video/mp4,video/webm"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const url = await uploadVideoFile(file, `vid_${idx}`);
+                                  if (url) updateFeaturedItem(idx, 'videoUrl', url);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-slate-400 mb-1">
+                            Deskripsi Singkat di Halaman Video (AdX Policy Safe)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={item.description || ''}
+                            onChange={(e) => updateFeaturedItem(idx, 'description', e.target.value)}
+                            placeholder="Deskripsi singkat tentang mainan di video ini agar halaman video kaya teks untuk AdX..."
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-slate-400">Target Link saat Kartu Diklik</label>
                             <select
                               onChange={(e) => {
                                 if (e.target.value) {
@@ -1180,21 +1290,27 @@ export default function DashboardPage() {
                               value=""
                               className="bg-slate-800 text-[10px] text-slate-300 rounded px-1.5 py-0.5 border border-slate-700 outline-none"
                             >
-                              <option value="">Pilih dari Artikel...</option>
+                              <option value="">Pilih Target Cepat...</option>
+                              <option value={`/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}>
+                                ▶ Halaman Video Player (/watch/{item.id || `feat_${idx + 1}`})
+                              </option>
                               {data.articles.map((a) => (
                                 <option key={a.id} value={`/${a.slug}?gclid=1`}>
-                                  /{a.slug}
+                                  📄 Artikel: /{a.slug}
                                 </option>
                               ))}
                             </select>
                           </div>
                           <input
                             type="text"
-                            value={item.targetUrl || ''}
+                            value={item.targetUrl || `/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}
                             onChange={(e) => updateFeaturedItem(idx, 'targetUrl', e.target.value)}
-                            placeholder="/slug-artikel?gclid=1"
+                            placeholder={`/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}
                             className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
                           />
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            Default mengarah ke <code>/watch/{item.id || `feat_${idx + 1}`}?gclid=1</code> (membuka Video Player + 4 slot iklan AdX baru).
+                          </p>
                         </div>
                       </div>
                     </div>

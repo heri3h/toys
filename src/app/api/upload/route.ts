@@ -17,9 +17,12 @@ export async function POST(req: Request) {
       fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     }
 
-    const ext = path.extname(file.name || '.jpg').toLowerCase() || '.jpg';
-    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'].includes(ext) ? ext : '.jpg';
-    const filename = `thumb-${Date.now()}-${Math.random().toString(36).substring(2, 7)}${safeExt}`;
+    const ext = path.extname(file.name || '.webp').toLowerCase() || '.webp';
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.mp4', '.webm'];
+    const safeExt = allowedExts.includes(ext) ? ext : '.webp';
+    const isVideo = safeExt === '.mp4' || safeExt === '.webm';
+    const prefix = isVideo ? 'vid' : 'thumb';
+    const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}${safeExt}`;
     const filePath = path.join(UPLOADS_DIR, filename);
 
     const arrayBuffer = await file.arrayBuffer();

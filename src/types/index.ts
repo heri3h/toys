@@ -25,7 +25,11 @@ export interface FeaturedItem {
   id: string;
   title: string;
   image: string;
-  targetUrl?: string; // Optional slug or URL when clicked
+  targetUrl?: string; // Optional slug or URL when clicked (defaults to /watch/[id]?gclid=1)
+  videoUrl?: string; // Optional MP4/WebM URL or uploaded video path
+  duration?: string; // e.g. "01:45"
+  views?: string; // e.g. "42.8K views"
+  description?: string; // Companion article text on the video watch page for AdX safety
 }
 
 export interface Article {

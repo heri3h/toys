@@ -221,7 +221,14 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                   Featured Videos & Games
                 </h3>
                 {relatedThumbnails.map((item, idx) => {
-                  const href = item.targetUrl || (gclid ? `/?gclid=${encodeURIComponent(gclid)}` : '/');
+                  const defaultWatchPath = `/watch/${item.id || `feat_${idx + 1}`}`;
+                  const rawTarget =
+                    !item.targetUrl || item.targetUrl === '/' || item.targetUrl === '/?gclid=1'
+                      ? defaultWatchPath
+                      : item.targetUrl;
+                  const basePath = rawTarget.split('?')[0];
+                  const href = `${basePath}?gclid=${encodeURIComponent(gclid || '1')}`;
+
                   return (
                     <a
                       key={item.id || idx}
@@ -235,17 +242,29 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                         loading="lazy"
                         decoding="async"
                       />
+                      {/* Top-left "WATCH VIDEO" Badge */}
+                      <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider shadow">
+                        ▶ Watch Video
+                      </div>
                       {/* Play Button Icon */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-14 h-10 rounded-xl bg-black/80 group-hover:bg-red-600 transition-colors flex items-center justify-center text-white shadow-lg">
+                        <div className="w-15 h-11 rounded-xl bg-red-600/95 group-hover:bg-red-600 group-hover:scale-110 transition-all flex items-center justify-center text-white shadow-xl">
                           <Play className="w-5 h-5 fill-current ml-0.5" />
                         </div>
                       </div>
-                      {/* Title Overlay */}
-                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                        <p className="text-white text-xs sm:text-sm font-semibold truncate">
-                          {item.title}
-                        </p>
+                      {/* Title + Duration & Views Overlay */}
+                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-white text-xs sm:text-sm font-semibold truncate">
+                            {item.title}
+                          </p>
+                          <p className="text-gray-300 text-[11px] mt-0.5">
+                            {item.views || '38.4K views'} • Toy Action Clip
+                          </p>
+                        </div>
+                        <span className="px-1.5 py-0.5 rounded bg-black/80 text-white text-[11px] font-mono font-semibold shrink-0">
+                          {item.duration || '01:45'}
+                        </span>
                       </div>
                     </a>
                   );
