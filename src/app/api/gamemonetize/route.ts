@@ -70,25 +70,25 @@ function formatBytes(bytes: number): string {
 export async function GET(req: Request) {
   await connection();
   const { searchParams } = new URL(req.url);
-  const category = searchParams.get('category') || 'Racing';
+  const category = searchParams.get('category') || 'All';
   const query = (searchParams.get('q') || '').trim().toLowerCase();
   const page = searchParams.get('page') || '1';
 
   try {
+    // GameMonetize feed.php expects numeric category IDs or no category param;
+    // passing a string like category=Racing returns []. So we fetch a larger batch
+    // and filter by the textual `category` and `tags` fields returned in JSON.
     const feedUrl = new URL('https://gamemonetize.com/feed.php');
     feedUrl.searchParams.set('format', '0');
-    feedUrl.searchParams.set('num', '60');
+    feedUrl.searchParams.set('num', '200');
     feedUrl.searchParams.set('page', page);
-    if (category && category !== 'All') {
-      feedUrl.searchParams.set('category', category);
-    }
 
     const res = await fetch(feedUrl.toString(), {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; ToysPortal/1.0)',
         Accept: 'application/json',
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!res.ok) {
@@ -96,7 +96,19 @@ export async function GET(req: Request) {
     }
 
     const rawList = (await res.json()) as RawGameMonetizeItem[];
-    let items = Array.isArray(rawList) ? rawList : FALLBACK_GAMES;
+    let items = Array.isArray(rawList) && rawList.length > 0 ? rawList : FALLBACK_GAMES;
+
+    if (category && category !== 'All') {
+      const catLower = category.toLowerCase();
+      const filteredByCat = items.filter(
+        (g) =>
+          g.category?.toLowerCase().includes(catLower) ||
+          g.tags?.toLowerCase().includes(catLower)
+      );
+      if (filteredByCat.length > 0) {
+        items = filteredByCat;
+      }
+    }
 
     if (query) {
       items = items.filter(
@@ -110,7 +122,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      items: items.slice(0, 48),
+      items: items.slice(0, 60),
     });
   } catch (err) {
     console.error('GameMonetize feed fetch error, using fallback:', err);

@@ -1760,7 +1760,7 @@ export default function DashboardPage() {
                         value={data.settings.siteName}
                         onChange={(e) => updateSetting('siteName', e.target.value)}
                         className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200"
-                        placeholder="qidtime.com"
+                        placeholder="toys.gledeg.com"
                       />
                     </div>
                     <div>

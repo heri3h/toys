@@ -6,8 +6,8 @@ const DATA_FILE_PATH = path.join(process.cwd(), 'data', 'site-data.json');
 
 const DEFAULT_DATA: SiteData = {
   settings: {
-    siteName: "qidtime.com",
-    domainUrl: "https://cars-toys.qidtime.com",
+    siteName: "toys.gledeg.com",
+    domainUrl: "https://toys.gledeg.com",
     gaMeasurementId: "G-TZ7MNVNL43",
     googleAdsId: "AW-16468268201",
     googleAdsConversionLabel: "kt1RCNLmgpUZEKmp16w9",
@@ -191,6 +191,18 @@ export function getSiteData(): SiteData {
     }
     if (!parsed.settings.adminPassword) {
       parsed.settings.adminPassword = DEFAULT_DATA.settings.adminPassword;
+    }
+    let needsSave = false;
+    if (!parsed.settings.siteName || parsed.settings.siteName.toLowerCase().includes('qidtime')) {
+      parsed.settings.siteName = 'toys.gledeg.com';
+      needsSave = true;
+    }
+    if (!parsed.settings.domainUrl || parsed.settings.domainUrl.toLowerCase().includes('qidtime')) {
+      parsed.settings.domainUrl = 'https://toys.gledeg.com';
+      needsSave = true;
+    }
+    if (needsSave) {
+      fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(parsed, null, 2), 'utf-8');
     }
     return parsed;
   } catch (error) {
