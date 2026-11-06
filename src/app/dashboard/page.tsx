@@ -369,7 +369,7 @@ export default function DashboardPage() {
       title: 'Awesome Toy Cars in Action',
       image:
         'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
-      targetUrl: `/watch/${newId}?gclid=1`,
+      targetUrl: `/watch/${newId}`,
       duration: '01:45',
       views: '38.4K views',
       description:
@@ -423,7 +423,7 @@ export default function DashboardPage() {
         title: json.title || 'YouTube Video',
         image: json.thumbnailUrl,
         videoUrl: json.videoUrl,
-        targetUrl: `/watch/${newId}?gclid=1`,
+        targetUrl: `/watch/${newId}`,
         duration: '03:20',
         views: `${(Math.floor(Math.random() * 80) + 15).toFixed(1)}K views`,
         description: json.author
@@ -577,7 +577,7 @@ export default function DashboardPage() {
   };
 
   const copyLink = (slug: string) => {
-    const url = `${window.location.origin}/${slug}?gclid=1`;
+    const url = `${window.location.origin}/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedSlug(slug);
     setTimeout(() => setCopiedSlug(null), 2000);
@@ -683,15 +683,6 @@ export default function DashboardPage() {
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700"
           >
             <span>Live Site</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-
-          <Link
-            href="/?gclid=test_campaign_123"
-            target="_blank"
-            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition-colors border border-amber-500/30 font-medium"
-          >
-            <span>Test Paid Mode (?gclid=1)</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
 
@@ -990,7 +981,7 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => copyLink(art.slug)}
-                            title="Copy URL (?gclid=1)"
+                            title="Copy URL"
                             className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
                           >
                             {copiedSlug === art.slug ? (
@@ -1002,7 +993,7 @@ export default function DashboardPage() {
                           </button>
 
                           <Link
-                            href={`/${art.slug}?gclid=1`}
+                            href={`/${art.slug}`}
                             target="_blank"
                             className="flex items-center gap-1 text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
                           >
@@ -1445,7 +1436,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Link
-                            href={`/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}
+                            href={`/watch/${item.id || `feat_${idx + 1}`}`}
                             target="_blank"
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 text-[11px] font-semibold"
                           >
@@ -1607,11 +1598,11 @@ export default function DashboardPage() {
                               className="bg-slate-800 text-[10px] text-slate-300 rounded px-1.5 py-0.5 border border-slate-700 outline-none"
                             >
                               <option value="">Pilih Target Cepat...</option>
-                              <option value={`/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}>
+                              <option value={`/watch/${item.id || `feat_${idx + 1}`}`}>
                                 ▶ Halaman Video Player (/watch/{item.id || `feat_${idx + 1}`})
                               </option>
                               {data.articles.map((a) => (
-                                <option key={a.id} value={`/${a.slug}?gclid=1`}>
+                                <option key={a.id} value={`/${a.slug}`}>
                                   📄 Artikel: /{a.slug}
                                 </option>
                               ))}
@@ -1619,13 +1610,13 @@ export default function DashboardPage() {
                           </div>
                           <input
                             type="text"
-                            value={item.targetUrl || `/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}
+                            value={item.targetUrl || `/watch/${item.id || `feat_${idx + 1}`}`}
                             onChange={(e) => updateFeaturedItem(idx, 'targetUrl', e.target.value)}
-                            placeholder={`/watch/${item.id || `feat_${idx + 1}`}?gclid=1`}
+                            placeholder={`/watch/${item.id || `feat_${idx + 1}`}`}
                             className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
                           />
                           <p className="text-[10px] text-slate-400 mt-1">
-                            Default mengarah ke <code>/watch/{item.id || `feat_${idx + 1}`}?gclid=1</code> (membuka Video Player + 4 slot iklan AdX baru).
+                            Default mengarah ke <code>/watch/{item.id || `feat_${idx + 1}`}</code> (membuka Video Player + 4 slot iklan AdX baru).
                           </p>
                         </div>
                       </div>
@@ -1694,7 +1685,7 @@ export default function DashboardPage() {
                           />
                           <div className="flex items-center justify-between gap-1 pt-1">
                             <Link
-                              href={`/play/${game.id}?gclid=1`}
+                              href={`/play/${game.id}`}
                               target="_blank"
                               className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 hover:underline"
                             >

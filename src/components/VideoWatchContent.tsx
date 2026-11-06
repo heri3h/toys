@@ -57,7 +57,6 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
 
   const gclid = searchParams.get('gclid');
   const isAdTraffic = Boolean(gclid);
-  const gclidSuffix = `?gclid=${encodeURIComponent(gclid || '1')}`;
 
   const youtubeId = extractYouTubeId(currentVideo.videoUrl);
   const isMp4Video = Boolean(
@@ -135,7 +134,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
     return `00:${cur < 10 ? `0${cur}` : cur}`;
   };
 
-  const nextVideoHref = `/watch/${nextVideo.id}${gclidSuffix}`;
+  const nextVideoHref = `/watch/${nextVideo.id}`;
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-[#111827] font-sans">
@@ -143,14 +142,14 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
           <a
-            href={`/${gclidSuffix}`}
+            href="/"
             className="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Story</span>
           </a>
           <a
-            href={`/${gclidSuffix}`}
+            href="/"
             className="text-base font-bold tracking-tight text-gray-800 hover:text-blue-600 transition-colors"
           >
             {settings.siteName}
@@ -472,7 +471,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
             <p className="text-xs text-gray-500">
               Want to read the full buying guide and safety tips for every age group?{' '}
               <a
-                href={`/${primaryArticle?.slug || ''}${gclidSuffix}`}
+                href={`/${primaryArticle?.slug || ''}`}
                 className="text-blue-600 font-semibold hover:underline"
               >
                 Read the complete article here &rarr;
@@ -499,7 +498,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
 
             <div className="space-y-3">
               {otherVideos.map((vid, idx) => {
-                const vidHref = `/watch/${vid.id || `feat_${idx + 1}`}${gclidSuffix}`;
+                const vidHref = `/watch/${vid.id || `feat_${idx + 1}`}`;
                 return (
                   <a
                     key={vid.id || idx}
@@ -561,7 +560,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
                 {games.map((game, idx) => (
                   <a
                     key={game.id || idx}
-                    href={`/play/${game.id || idx}${gclidSuffix}`}
+                    href={`/play/${game.id || idx}`}
                     className="group relative aspect-square rounded-2xl overflow-hidden bg-neutral-900 border border-gray-200 shadow-xs hover:shadow-lg transition-all"
                   >
                     <img

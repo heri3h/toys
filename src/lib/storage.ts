@@ -113,7 +113,7 @@ const DEFAULT_DATA: SiteData = {
       id: "feat_1",
       title: "Car Toys That Make Playtime Awesome",
       image: "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=600&q=80",
-      targetUrl: "/watch/feat_1?gclid=1",
+      targetUrl: "/watch/feat_1",
       duration: "01:48",
       views: "42.8K views",
       description: "Watch how high-torque pullback racing cars and miniature stunt vehicles conquer living room tracks! These durable die-cast and RC models combine fast action with safe, kid-friendly design for hours of indoor and outdoor fun."
@@ -122,7 +122,7 @@ const DEFAULT_DATA: SiteData = {
       id: "feat_2",
       title: "Zoom Into Adventure with These Cool Toy Cars",
       image: "https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=600&q=80",
-      targetUrl: "/watch/feat_2?gclid=1",
+      targetUrl: "/watch/feat_2",
       duration: "02:15",
       views: "31.4K views",
       description: "From off-road monster trucks with oversized suspension springs to sleek turbo racers, see why kids love building custom obstacle courses and racing head-to-head with friends."
@@ -131,7 +131,7 @@ const DEFAULT_DATA: SiteData = {
       id: "feat_3",
       title: "Why Kids Can't Get Enough of Toy Cars",
       image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80",
-      targetUrl: "/watch/feat_3?gclid=1",
+      targetUrl: "/watch/feat_3",
       duration: "01:32",
       views: "58.9K views",
       description: "Discover the top-rated toy vehicles of the season! Interactive headlights, realistic engine sounds, and rechargeable 2.4GHz remote controls make these toy cars an unforgettable gift for kids of every age."
@@ -200,6 +200,19 @@ export function getSiteData(): SiteData {
     if (!parsed.settings.domainUrl || parsed.settings.domainUrl.toLowerCase().includes('qidtime')) {
       parsed.settings.domainUrl = 'https://toys.gledeg.com';
       needsSave = true;
+    }
+    if (Array.isArray(parsed.featuredItems)) {
+      parsed.featuredItems = parsed.featuredItems.map((item, idx) => {
+        if (item.targetUrl && item.targetUrl.includes('gclid')) {
+          needsSave = true;
+          const base = item.targetUrl.split('?')[0];
+          return {
+            ...item,
+            targetUrl: !base || base === '/' ? `/watch/${item.id || `feat_${idx + 1}`}` : base,
+          };
+        }
+        return item;
+      });
     }
     if (needsSave) {
       fs.writeFileSync(DATA_FILE_PATH, JSON.stringify(parsed, null, 2), 'utf-8');

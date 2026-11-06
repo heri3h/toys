@@ -30,7 +30,6 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
 
   const gclid = searchParams.get('gclid');
   const isAdTraffic = Boolean(gclid);
-  const gclidSuffix = `?gclid=${encodeURIComponent(gclid || '1')}`;
 
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -53,14 +52,14 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
           <a
-            href={`/${gclidSuffix}`}
+            href="/"
             className="flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-emerald-600 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Home</span>
           </a>
           <a
-            href={`/${gclidSuffix}`}
+            href="/"
             className="text-base font-bold tracking-tight text-gray-800 hover:text-emerald-600 transition-colors"
           >
             {settings.siteName}
@@ -235,7 +234,7 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
                 {otherGames.map((game, idx) => (
                   <a
                     key={game.id || idx}
-                    href={`/play/${game.id || idx}${gclidSuffix}`}
+                    href={`/play/${game.id || idx}`}
                     className="group relative aspect-square rounded-2xl overflow-hidden bg-neutral-900 border border-gray-200 shadow-xs hover:shadow-lg transition-all"
                   >
                     <img
@@ -275,7 +274,7 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
                 {featuredItems.map((vid, idx) => (
                   <a
                     key={vid.id || idx}
-                    href={`/watch/${vid.id || `feat_${idx + 1}`}${gclidSuffix}`}
+                    href={`/watch/${vid.id || `feat_${idx + 1}`}`}
                     className="group flex flex-col sm:flex-row gap-3 p-2.5 rounded-xl border border-gray-200 hover:border-red-300 transition-all"
                   >
                     <div className="relative w-full sm:w-48 aspect-video rounded-lg overflow-hidden bg-neutral-900 shrink-0">

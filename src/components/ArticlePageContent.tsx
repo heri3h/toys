@@ -114,19 +114,19 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
             id: 'feat_1',
             title: 'Car Toys That Make Playtime Awesome',
             image: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=600&q=80',
-            targetUrl: '/?gclid=1',
+            targetUrl: '/watch/feat_1',
           },
           {
             id: 'feat_2',
             title: 'Zoom Into Adventure with These Cool Toy Cars',
             image: 'https://images.unsplash.com/photo-1594787318286-3d835c1d207f?auto=format&fit=crop&w=600&q=80',
-            targetUrl: '/?gclid=1',
+            targetUrl: '/watch/feat_2',
           },
           {
             id: 'feat_3',
             title: "Why Kids Can't Get Enough of Toy Cars",
             image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
-            targetUrl: '/?gclid=1',
+            targetUrl: '/watch/feat_3',
           },
         ];
 
@@ -227,12 +227,9 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
 
                 {relatedThumbnails.map((item, idx) => {
                   const defaultWatchPath = `/watch/${item.id || `feat_${idx + 1}`}`;
-                  const rawTarget =
-                    !item.targetUrl || item.targetUrl === '/' || item.targetUrl === '/?gclid=1'
-                      ? defaultWatchPath
-                      : item.targetUrl;
-                  const basePath = rawTarget.split('?')[0];
-                  const href = `${basePath}?gclid=${encodeURIComponent(gclid || '1')}`;
+                  const cleanedTarget = item.targetUrl ? item.targetUrl.split('?')[0] : '';
+                  const href =
+                    !cleanedTarget || cleanedTarget === '/' ? defaultWatchPath : cleanedTarget;
 
                   return (
                     <a
@@ -291,9 +288,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
                     {games.map((game, idx) => {
-                      const gameHref = `/play/${game.id || idx}?gclid=${encodeURIComponent(
-                        gclid || '1'
-                      )}`;
+                      const gameHref = `/play/${game.id || idx}`;
                       return (
                         <a
                           key={game.id || idx}
