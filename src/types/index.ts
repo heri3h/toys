@@ -62,12 +62,13 @@ export interface Article {
 export interface SiteData {
   settings: SiteSettings;
   ads: {
-    sidebarLeft: AdSlotConfig;
-    sidebarRight: AdSlotConfig;
     homeTop: AdSlotConfig;
     homeMore: AdSlotConfig;
     inArticle: AdSlotConfig;
+    bottomAnchor: AdSlotConfig;
     interstitial: AdSlotConfig;
+    sidebarLeft: AdSlotConfig;
+    sidebarRight: AdSlotConfig;
   };
   articles: Article[];
   featuredItems?: FeaturedItem[];

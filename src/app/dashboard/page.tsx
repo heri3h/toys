@@ -895,39 +895,115 @@ export default function DashboardPage() {
 
         {/* Tab Contents Area */}
         <div className="md:col-span-3">
-          {/* TAB 1: ADX PLACEMENTS */}
+          {/* TAB 1: ADX PLACEMENTS (7 AD UNITS) */}
           {activeTab === 'ads' && (
             <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-6 space-y-6">
-              <div>
-                <h2 className="text-lg font-bold text-white">Google AdX Slots Configuration</h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  Atur Ad Unit Path, ukuran iklan (Sizes), dan Target Pricing (TCPM) untuk setiap penempatan.
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-white">
+                    Google AdX Slots Configuration (7 Ad Units)
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Atur Ad Unit Path, ukuran iklan (Sizes), dan Target Pricing (TCPM) untuk ke-7 slot iklan Mobile &amp; Desktop.
+                  </p>
+                </div>
+                <span className="text-xs font-semibold bg-blue-500/15 border border-blue-500/30 text-blue-300 px-3 py-1 rounded-full">
+                  Total: 7 Ad Units Aktif
+                </span>
               </div>
 
               <div className="space-y-4">
-                {(Object.keys(data.ads) as Array<keyof SiteData['ads']>).map((slotKey) => {
+                {(
+                  [
+                    'homeTop',
+                    'homeMore',
+                    'inArticle',
+                    'bottomAnchor',
+                    'interstitial',
+                    'sidebarLeft',
+                    'sidebarRight',
+                  ] as Array<keyof SiteData['ads']>
+                ).map((slotKey, index) => {
                   const slot = data.ads[slotKey];
+                  if (!slot) return null;
+
+                  const slotMeta: Record<
+                    keyof SiteData['ads'],
+                    { badge: string; badgeClass: string; desc: string }
+                  > = {
+                    homeTop: {
+                      badge: '📱 Mobile + 💻 Desktop',
+                      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                      desc: 'Tampil paling atas (Above the Fold) di bawah header pada halaman Artikel, Video (/watch), dan Game (/play).',
+                    },
+                    homeMore: {
+                      badge: '📱 Mobile + 💻 Desktop',
+                      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                      desc: 'Otomatis tampil di sela-sela Featured Videos & Featured Games saat scroll (atau setelah Read More), serta tepat di atas daftar Up Next Video/Game.',
+                    },
+                    inArticle: {
+                      badge: '📱 Mobile + 💻 Desktop',
+                      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                      desc: 'Otomatis tampil di bagian bawah halaman setelah daftar Featured Games begitu user melakukan scroll.',
+                    },
+                    bottomAnchor: {
+                      badge: '📱 Mobile Sticky Bawah (Ala AdSense)',
+                      badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                      desc: 'Menempel melayang di bagian paling bawah layar HP (Sticky Bottom Anchor) lengkap dengan tombol lipat/tutup ala AdSense.',
+                    },
+                    interstitial: {
+                      badge: '📱💻 Out-of-Page Interstitial',
+                      badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+                      desc: 'Iklan layar penuh (Vignette / Web Interstitial GPT) saat pengunjung berpindah halaman. Ukuran (Sizes) boleh dikosongkan.',
+                    },
+                    sidebarLeft: {
+                      badge: '💻 Desktop Only',
+                      badgeClass: 'bg-slate-800 text-slate-300 border-slate-700',
+                      desc: 'Sticky banner di sisi kiri layar khusus pengunjung PC / Laptop.',
+                    },
+                    sidebarRight: {
+                      badge: '💻 Desktop Only',
+                      badgeClass: 'bg-slate-800 text-slate-300 border-slate-700',
+                      desc: 'Sticky banner di sisi kanan layar khusus pengunjung PC / Laptop.',
+                    },
+                  };
+
+                  const meta = slotMeta[slotKey];
                   const presets: Array<[number, number]> = [
                     [300, 250],
                     [336, 280],
+                    [320, 50],
+                    [320, 100],
+                    [300, 50],
+                    [300, 300],
                     [300, 600],
                     [160, 600],
-                    [320, 100],
-                    [300, 300],
                   ];
+
                   return (
                     <div
                       key={slotKey}
                       className="border border-slate-800 bg-slate-950/60 rounded-lg p-4 space-y-3"
                     >
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-slate-100">{slot.name}</span>
-                          <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded">
-                            {slot.id}
-                          </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[11px] font-extrabold bg-blue-600 text-white px-2 py-0.5 rounded">
+                              #{index + 1} / 7
+                            </span>
+                            <span className="font-bold text-sm text-slate-100">{slot.name}</span>
+                            <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded">
+                              {slot.id}
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${meta.badgeClass}`}
+                            >
+                              {meta.badge}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400">{meta.desc}</p>
                         </div>
+
                         <label className="flex items-center gap-2 cursor-pointer text-xs">
                           <span className="text-slate-400">Enabled:</span>
                           <input
@@ -973,7 +1049,11 @@ export default function DashboardPage() {
                             value={sizeInputs[slotKey] ?? formatSizesToString(slot.sizes)}
                             onChange={(e) => handleSizeInputChange(slotKey, e.target.value)}
                             className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono text-xs focus:border-blue-500 outline-none"
-                            placeholder="300x250, 336x280"
+                            placeholder={
+                              slotKey === 'interstitial'
+                                ? 'Kosongkan untuk Out-of-Page Interstitial'
+                                : '300x250, 336x280'
+                            }
                           />
                           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                             <span className="text-[10px] text-slate-500">+ Quick Add:</span>

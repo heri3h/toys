@@ -18,27 +18,9 @@ const DEFAULT_DATA: SiteData = {
     adminPassword: "admin123",
   },
   ads: {
-    sidebarLeft: {
-      id: "sidebar_left",
-      name: "Sidebar Left Ad",
-      slotPath: "/22282810983/lw5wflkevg_xqc_sidebar_left",
-      sizes: [[300, 600], [160, 600], [300, 250]],
-      tcpm: "6000",
-      enabled: true,
-      lazyLoad: false,
-    },
-    sidebarRight: {
-      id: "sidebar_right",
-      name: "Sidebar Right Ad",
-      slotPath: "/22282810983/lw5wflkevg_xqc_sidebar_right",
-      sizes: [[300, 600], [160, 600], [300, 250]],
-      tcpm: "5000",
-      enabled: true,
-      lazyLoad: false,
-    },
     homeTop: {
       id: "home_top",
-      name: "Header / Home Top Ad",
+      name: "1. Header / Home Top Ad (Above the Fold)",
       slotPath: "/22282810983/lw5wflkevg_xqc_home_top",
       sizes: [[300, 250], [336, 280], [300, 300], [320, 100]],
       tcpm: "125000",
@@ -47,7 +29,7 @@ const DEFAULT_DATA: SiteData = {
     },
     homeMore: {
       id: "home_more",
-      name: "Home More (Mid-Article) Ad",
+      name: "2. Mid Content Ad (Antara Video & Game / Read More)",
       slotPath: "/22282810983/lw5wflkevg_xqc_home_more",
       sizes: [[300, 250], [336, 280]],
       tcpm: "150000",
@@ -56,19 +38,46 @@ const DEFAULT_DATA: SiteData = {
     },
     inArticle: {
       id: "in_article",
-      name: "In-Article Content Ad",
+      name: "3. Bottom Content Ad (Bawah Daftar Game)",
       slotPath: "/22282810983/lw5wflkevg_xqc_content",
       sizes: [[300, 250], [336, 280]],
       tcpm: "80000",
       enabled: true,
       lazyLoad: true,
     },
+    bottomAnchor: {
+      id: "bottom_anchor",
+      name: "4. Mobile Sticky Bottom Anchor Ad (Ala AdSense)",
+      slotPath: "/22282810983/lw5wflkevg_xqc_bottom_anchor",
+      sizes: [[320, 50], [320, 100], [300, 50]],
+      tcpm: "95000",
+      enabled: true,
+      lazyLoad: false,
+    },
     interstitial: {
       id: "interstitial",
-      name: "Full-page Interstitial Ad",
+      name: "5. Full-page Interstitial / Vignette Ad",
       slotPath: "/22282810983/lw5wflkevg_xqc_int",
       sizes: [],
       tcpm: "2000000",
+      enabled: true,
+      lazyLoad: false,
+    },
+    sidebarLeft: {
+      id: "sidebar_left",
+      name: "6. Sidebar Left Sticky Ad (Desktop)",
+      slotPath: "/22282810983/lw5wflkevg_xqc_sidebar_left",
+      sizes: [[300, 600], [160, 600], [300, 250]],
+      tcpm: "6000",
+      enabled: true,
+      lazyLoad: false,
+    },
+    sidebarRight: {
+      id: "sidebar_right",
+      name: "7. Sidebar Right Sticky Ad (Desktop)",
+      slotPath: "/22282810983/lw5wflkevg_xqc_sidebar_right",
+      sizes: [[300, 600], [160, 600], [300, 250]],
+      tcpm: "5000",
       enabled: true,
       lazyLoad: false,
     },
@@ -193,6 +202,30 @@ export function getSiteData(): SiteData {
       parsed.settings.adminPassword = DEFAULT_DATA.settings.adminPassword;
     }
     let needsSave = false;
+    const orderedKeys: Array<keyof SiteData['ads']> = [
+      'homeTop',
+      'homeMore',
+      'inArticle',
+      'bottomAnchor',
+      'interstitial',
+      'sidebarLeft',
+      'sidebarRight',
+    ];
+    const currentAds = (parsed.ads || {}) as Partial<SiteData['ads']>;
+    const normalizedAds = {} as SiteData['ads'];
+    for (const k of orderedKeys) {
+      if (!currentAds[k]) {
+        normalizedAds[k] = DEFAULT_DATA.ads[k];
+        needsSave = true;
+      } else {
+        normalizedAds[k] = {
+          ...DEFAULT_DATA.ads[k],
+          ...currentAds[k],
+          name: DEFAULT_DATA.ads[k].name,
+        };
+      }
+    }
+    parsed.ads = normalizedAds;
     if (!parsed.settings.siteName || parsed.settings.siteName.toLowerCase().includes('qidtime')) {
       parsed.settings.siteName = 'toys.gledeg.com';
       needsSave = true;

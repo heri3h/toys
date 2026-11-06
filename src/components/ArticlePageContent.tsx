@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiteData } from '@/types';
-import { AdUnit } from '@/components/AdUnit';
+import { AdUnit, MobileBottomAnchorAd, InterstitialAdUnit } from '@/components/AdUnit';
 import { AdOverlay } from '@/components/AdOverlay';
 import { Navbar } from '@/components/Navbar';
 import { ChevronDown, Play, Gamepad2 } from 'lucide-react';
@@ -204,8 +204,8 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
               </button>
             )}
 
-            {/* Mid Ad & Expanded Content */}
-            {!isTruncated && (
+              {/* Mid Ad & Expanded Content (When Read More is clicked) */}
+            {!isTruncated && ads.homeMore?.enabled && (
               <div className="my-5">
                 <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
               </div>
@@ -273,6 +273,13 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                 })}
               </div>
 
+              {/* POIN 1: Mid Ad (homeMore) automatically appears between Featured Videos & Featured Games when user scrolls without clicking Read More */}
+              {isTruncated && ads.homeMore?.enabled && (
+                <div className="pt-2 border-t border-gray-100">
+                  <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
+                </div>
+              )}
+
               {/* SECTION 2: FEATURED GAMES (Square 1:1 Grid from GameMonetize Database) */}
               {games && games.length > 0 && (
                 <div className="pt-5 border-t border-gray-100 space-y-3">
@@ -328,8 +335,8 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                 </div>
               )}
 
-              {/* Bottom In-Article Ad */}
-              {!isTruncated && ads.inArticle.enabled && (
+              {/* POIN 1: Bottom Content Ad (inArticle) unlocked on scroll even if Read More wasn't clicked */}
+              {ads.inArticle?.enabled && (
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <AdUnit config={ads.inArticle} isAdTraffic={isAdTraffic} />
                 </div>
@@ -348,6 +355,11 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
         )}
       </div>
 
+      {/* Unit #4: Mobile Sticky Bottom Anchor Ad (Ala AdSense) */}
+      <MobileBottomAnchorAd config={ads.bottomAnchor} isAdTraffic={isAdTraffic} />
+
+      {/* Unit #5: Full-Page Interstitial / Vignette Ad */}
+      <InterstitialAdUnit config={ads.interstitial} />
     </div>
   );
 };

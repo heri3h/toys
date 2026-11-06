@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiteData, FeaturedItem } from '@/types';
-import { AdUnit } from './AdUnit';
+import { AdUnit, MobileBottomAnchorAd, InterstitialAdUnit } from './AdUnit';
 import {
   Play,
   Pause,
@@ -459,27 +459,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
             </div>
           </div>
 
-          {/* Companion Editorial Description (Ensures 100% Google AdX Content Policy Compliance) */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-2.5 text-sm text-gray-700 leading-relaxed">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
-              About This Toy Car Feature
-            </h2>
-            <p>
-              {currentVideo.description ||
-                'Watch how high-torque pullback racing cars, remote-controlled drift vehicles, and sturdy monster trucks bring hours of creative action to kids of all ages. Built with durable materials and responsive suspension, these toy vehicles turn any living room or backyard into an exciting race track.'}
-            </p>
-            <p className="text-xs text-gray-500">
-              Want to read the full buying guide and safety tips for every age group?{' '}
-              <a
-                href={`/${primaryArticle?.slug || ''}`}
-                className="text-blue-600 font-semibold hover:underline"
-              >
-                Read the complete article here &rarr;
-              </a>
-            </p>
-          </div>
-
-          {/* Mid-Page Ad Slot */}
+          {/* POIN 2: Mid-Page Ad Slot (homeMore) directly above Up Next Videos for maximum mobile thumb-zone viewability */}
           {ads.homeMore.enabled && (
             <div className="py-1">
               <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
@@ -487,7 +467,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
           )}
 
           {/* SECTION 1: UP NEXT / MORE VIDEOS LIST (Rectangular 16:9) */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                 <Play className="w-4 h-4 text-red-600 fill-current" />
@@ -541,6 +521,26 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
                 );
               })}
             </div>
+          </div>
+
+          {/* Companion Editorial Description (Ensures 100% Google AdX Content Policy Compliance) */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-2.5 text-sm text-gray-700 leading-relaxed">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+              About This Toy Car Feature
+            </h2>
+            <p>
+              {currentVideo.description ||
+                'Watch how high-torque pullback racing cars, remote-controlled drift vehicles, and sturdy monster trucks bring hours of creative action to kids of all ages. Built with durable materials and responsive suspension, these toy vehicles turn any living room or backyard into an exciting race track.'}
+            </p>
+            <p className="text-xs text-gray-500">
+              Want to read the full buying guide and safety tips for every age group?{' '}
+              <a
+                href={`/${primaryArticle?.slug || ''}`}
+                className="text-blue-600 font-semibold hover:underline"
+              >
+                Read the complete article here &rarr;
+              </a>
+            </p>
           </div>
 
           {/* SECTION 2: FEATURED GAMES (Square 1:1 Grid) */}
@@ -602,6 +602,12 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
           </aside>
         )}
       </div>
+
+      {/* Unit #4: Mobile Sticky Bottom Anchor Ad (Ala AdSense) */}
+      <MobileBottomAnchorAd config={ads.bottomAnchor} isAdTraffic={isAdTraffic} />
+
+      {/* Unit #5: Full-Page Interstitial / Vignette Ad */}
+      <InterstitialAdUnit config={ads.interstitial} />
     </div>
   );
 };

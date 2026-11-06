@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiteData, GameItem } from '@/types';
-import { AdUnit } from './AdUnit';
+import { AdUnit, MobileBottomAnchorAd, InterstitialAdUnit } from './AdUnit';
 import {
   Play,
   Gamepad2,
@@ -194,34 +194,16 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
             </div>
           </div>
 
-          {/* Game Description & Instructions (100% Google AdX Content Policy Safe) */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3 text-sm text-gray-700 leading-relaxed">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
-              <Info className="w-4 h-4 text-emerald-600" />
-              <span>About {currentGame.title} &amp; How to Play</span>
-            </div>
-            <p>
-              {currentGame.description ||
-                'Jump behind the wheel in this fast-paced racing and stunt adventure! Test your driving reflexes, dodge obstacles, and unlock cool new vehicles right in your browser.'}
-            </p>
-            {currentGame.instructions && (
-              <div className="pt-2 border-t border-gray-200/70">
-                <p className="text-xs font-bold text-gray-600 mb-1">Controls / Instructions:</p>
-                <p className="text-xs text-gray-600">{currentGame.instructions}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Mid-Page Ad Slot */}
+          {/* POIN 2: Mid-Page Ad Slot (homeMore) directly above More Games grid for maximum mobile thumb-zone viewability */}
           {ads.homeMore.enabled && (
-            <div className="py-2">
+            <div className="py-1">
               <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
             </div>
           )}
 
           {/* SECTION 1: MORE GAMES TO PLAY (Square 1:1 Grid) */}
           {otherGames.length > 0 && (
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Gamepad2 className="w-4 h-4 text-emerald-600" />
@@ -258,6 +240,24 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
               </div>
             </div>
           )}
+
+          {/* Game Description & Instructions (100% Google AdX Content Policy Safe) */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3 text-sm text-gray-700 leading-relaxed">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
+              <Info className="w-4 h-4 text-emerald-600" />
+              <span>About {currentGame.title} &amp; How to Play</span>
+            </div>
+            <p>
+              {currentGame.description ||
+                'Jump behind the wheel in this fast-paced racing and stunt adventure! Test your driving reflexes, dodge obstacles, and unlock cool new vehicles right in your browser.'}
+            </p>
+            {currentGame.instructions && (
+              <div className="pt-2 border-t border-gray-200/70">
+                <p className="text-xs font-bold text-gray-600 mb-1">Controls / Instructions:</p>
+                <p className="text-xs text-gray-600">{currentGame.instructions}</p>
+              </div>
+            )}
+          </div>
 
           {/* SECTION 2: FEATURED VIDEOS (Rectangular 16:9 List) */}
           {featuredItems && featuredItems.length > 0 && (
@@ -325,6 +325,12 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
           </aside>
         )}
       </div>
+
+      {/* Unit #4: Mobile Sticky Bottom Anchor Ad (Ala AdSense) */}
+      <MobileBottomAnchorAd config={ads.bottomAnchor} isAdTraffic={isAdTraffic} />
+
+      {/* Unit #5: Full-Page Interstitial / Vignette Ad */}
+      <InterstitialAdUnit config={ads.interstitial} />
     </div>
   );
 };
