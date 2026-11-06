@@ -47,9 +47,9 @@ const DEFAULT_DATA: SiteData = {
     },
     bottomAnchor: {
       id: "bottom_anchor",
-      name: "4. Mobile Sticky Bottom Anchor Ad (Ala AdSense)",
+      name: "4. Sticky Bottom Anchor Ad (Ala AdSense - Mobile & Desktop)",
       slotPath: "/22282810983/lw5wflkevg_xqc_bottom_anchor",
-      sizes: [[320, 50], [320, 100], [300, 50]],
+      sizes: [[728, 90], [320, 100], [320, 50], [300, 50]],
       tcpm: "95000",
       enabled: true,
       lazyLoad: false,
@@ -218,10 +218,20 @@ export function getSiteData(): SiteData {
         normalizedAds[k] = DEFAULT_DATA.ads[k];
         needsSave = true;
       } else {
+        if (currentAds[k]!.name !== DEFAULT_DATA.ads[k].name) {
+          needsSave = true;
+        }
+        const shouldUpgradeBottomSizes =
+          k === 'bottomAnchor' &&
+          currentAds[k]!.slotPath === DEFAULT_DATA.ads.bottomAnchor.slotPath &&
+          !currentAds[k]!.sizes?.some(([w]) => w === 728);
         normalizedAds[k] = {
           ...DEFAULT_DATA.ads[k],
           ...currentAds[k],
           name: DEFAULT_DATA.ads[k].name,
+          sizes: shouldUpgradeBottomSizes
+            ? DEFAULT_DATA.ads.bottomAnchor.sizes
+            : currentAds[k]!.sizes || DEFAULT_DATA.ads[k].sizes,
         };
       }
     }

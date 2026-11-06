@@ -932,29 +932,29 @@ export default function DashboardPage() {
                     { badge: string; badgeClass: string; desc: string }
                   > = {
                     homeTop: {
-                      badge: '📱 Mobile + 💻 Desktop',
+                      badge: '📱 Mobile + 💻 Desktop (Responsif)',
                       badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-                      desc: 'Tampil paling atas (Above the Fold) di bawah header pada halaman Artikel, Video (/watch), dan Game (/play).',
+                      desc: 'Tampil paling atas (Above the Fold) di bawah header pada halaman Artikel, Video (/watch), dan Game (/play). Ukuran otomatis difilter sesuai lebar layar.',
                     },
                     homeMore: {
-                      badge: '📱 Mobile + 💻 Desktop',
+                      badge: '📱 Mobile + 💻 Desktop (Responsif)',
                       badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
                       desc: 'Otomatis tampil di sela-sela Featured Videos & Featured Games saat scroll (atau setelah Read More), serta tepat di atas daftar Up Next Video/Game.',
                     },
                     inArticle: {
-                      badge: '📱 Mobile + 💻 Desktop',
+                      badge: '📱 Mobile + 💻 Desktop (Responsif)',
                       badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
                       desc: 'Otomatis tampil di bagian bawah halaman setelah daftar Featured Games begitu user melakukan scroll.',
                     },
                     bottomAnchor: {
-                      badge: '📱 Mobile Sticky Bawah (Ala AdSense)',
+                      badge: '📱 Mobile + 💻 Desktop (Sticky Bawah Ala AdSense)',
                       badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-                      desc: 'Menempel melayang di bagian paling bawah layar HP (Sticky Bottom Anchor) lengkap dengan tombol lipat/tutup ala AdSense.',
+                      desc: 'Menempel melayang di bagian paling bawah layar HP maupun Desktop (otomatis 728x90 di Desktop & 320x50/320x100 di HP) lengkap dengan tombol lipat/tutup ala AdSense.',
                     },
                     interstitial: {
-                      badge: '📱💻 Out-of-Page Interstitial',
+                      badge: '📱 Mobile + 💻 Desktop (Interstitial)',
                       badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
-                      desc: 'Iklan layar penuh (Vignette / Web Interstitial GPT) saat pengunjung berpindah halaman. Ukuran (Sizes) boleh dikosongkan.',
+                      desc: 'Iklan layar penuh (Vignette / Web Interstitial GPT) saat pengunjung berpindah halaman di Mobile maupun Desktop. Ukuran (Sizes) boleh dikosongkan.',
                     },
                     sidebarLeft: {
                       badge: '💻 Desktop Only',
@@ -972,8 +972,10 @@ export default function DashboardPage() {
                   const presets: Array<[number, number]> = [
                     [300, 250],
                     [336, 280],
-                    [320, 50],
+                    [728, 90],
+                    [468, 60],
                     [320, 100],
+                    [320, 50],
                     [300, 50],
                     [300, 300],
                     [300, 600],

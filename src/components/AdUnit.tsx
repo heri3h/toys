@@ -34,6 +34,19 @@ function ensureGptLoaded() {
   }
 }
 
+function getResponsiveSizes(
+  configuredSizes: number[][] | undefined,
+  maxWidth: number,
+  fallbackSizes: number[][]
+): number[][] {
+  const base = configuredSizes && configuredSizes.length > 0 ? configuredSizes : fallbackSizes;
+  const fitting = base.filter(([w]) => w <= maxWidth);
+  if (fitting.length > 0) return fitting;
+  // If all configured sizes exceed maxWidth, pick the smallest width configured size
+  const sorted = [...base].sort((a, b) => a[0] - b[0]);
+  return [sorted[0]];
+}
+
 interface AdUnitProps {
   config: AdSlotConfig;
   className?: string;
@@ -55,8 +68,15 @@ export const AdUnit: React.FC<AdUnitProps> = ({ config, className = '', isAdTraf
       window.googletag.cmd.push(() => {
         try {
           if (config.sizes && config.sizes.length > 0) {
+            const containerWidth =
+              adRef.current?.clientWidth ||
+              (typeof window !== 'undefined' ? window.innerWidth - 24 : 360);
+            const responsiveSizes = getResponsiveSizes(config.sizes, containerWidth, [
+              [300, 250],
+            ]);
+
             const slot = window.googletag
-              .defineSlot(config.slotPath, config.sizes, slotDivId)
+              .defineSlot(config.slotPath, responsiveSizes, slotDivId)
               ?.addService(window.googletag.pubads());
 
             if (slot && config.tcpm) {
@@ -86,7 +106,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({ config, className = '', isAdTraf
       {/* Visual placeholder box in case live AdX is in test/fill mode */}
       <div
         id={slotDivId}
-        className="mx-auto flex flex-col items-center justify-center min-h-[100px] border border-dashed border-gray-300 bg-gray-50/70 rounded p-2 text-xs text-gray-500"
+        className="mx-auto flex flex-col items-center justify-center min-h-[100px] border border-dashed border-gray-300 bg-gray-50/70 rounded p-2 text-xs text-gray-500 max-w-full"
         style={{
           minWidth: config.sizes?.[0]?.[0] ? `${Math.min(config.sizes[0][0], 300)}px` : '300px',
           minHeight: config.sizes?.[0]?.[1] ? `${Math.min(config.sizes[0][1], 250)}px` : '100px',
@@ -105,8 +125,8 @@ export const AdUnit: React.FC<AdUnitProps> = ({ config, className = '', isAdTraf
 };
 
 /**
- * Unit #4: Mobile Sticky Bottom Anchor Ad (Ala AdSense)
- * Sticks to the bottom of the mobile screen with a collapsible tab & close button.
+ * Unit #4: Responsive Sticky Bottom Anchor Ad (Ala AdSense - Mobile & Desktop)
+ * Sticks to the bottom of both Mobile and Desktop screens with a collapsible tab & close button.
  */
 export const MobileBottomAnchorAd: React.FC<{
   config?: AdSlotConfig;
@@ -126,16 +146,16 @@ export const MobileBottomAnchorAd: React.FC<{
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
-          const sizesToUse =
-            config.sizes && config.sizes.length > 0
-              ? config.sizes
-              : [
-                  [320, 50],
-                  [320, 100],
-                  [300, 50],
-                ];
+          const viewportW = typeof window !== 'undefined' ? window.innerWidth - 16 : 360;
+          const responsiveSizes = getResponsiveSizes(config.sizes, viewportW, [
+            [728, 90],
+            [320, 100],
+            [320, 50],
+            [300, 50],
+          ]);
+
           const slot = window.googletag
-            .defineSlot(config.slotPath, sizesToUse, slotDivId)
+            .defineSlot(config.slotPath, responsiveSizes, slotDivId)
             ?.addService(window.googletag.pubads());
 
           if (slot && config.tcpm) {
@@ -153,8 +173,8 @@ export const MobileBottomAnchorAd: React.FC<{
   if (!config || !config.enabled || closed) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden pointer-events-none">
-      <div className="max-w-[680px] mx-auto flex flex-col items-center pointer-events-auto">
+    <div className="fixed inset-x-0 bottom-0 z-40 pointer-events-none">
+      <div className="max-w-[760px] mx-auto flex flex-col items-center pointer-events-auto">
         {/* AdSense-style top handle tab */}
         <div className="w-full flex items-center justify-between px-3 py-1 bg-white/95 backdrop-blur border-t border-x border-gray-200 rounded-t-xl shadow-sm">
           <span className="text-[9px] font-mono uppercase tracking-wider text-gray-400">
@@ -186,17 +206,13 @@ export const MobileBottomAnchorAd: React.FC<{
 
         {/* Sticky Banner Body */}
         {!collapsed && (
-          <div className="w-full bg-white/98 backdrop-blur border-t border-gray-100 py-1.5 px-2 shadow-2xl flex justify-center">
+          <div className="w-full bg-white/98 backdrop-blur border-t border-gray-100 py-1.5 px-2 shadow-2xl flex justify-center overflow-hidden">
             <div
               id={slotDivId}
-              className="mx-auto flex flex-col items-center justify-center border border-dashed border-gray-300 bg-gray-50/80 rounded px-3 py-1.5 text-[11px] text-gray-500"
+              className="mx-auto flex flex-col items-center justify-center border border-dashed border-gray-300 bg-gray-50/80 rounded px-3 py-1.5 text-[11px] text-gray-500 max-w-full"
               style={{
-                minWidth: config.sizes?.[0]?.[0]
-                  ? `${Math.min(config.sizes[0][0], 320)}px`
-                  : '320px',
-                minHeight: config.sizes?.[0]?.[1]
-                  ? `${Math.min(config.sizes[0][1], 100)}px`
-                  : '50px',
+                minWidth: '300px',
+                minHeight: '50px',
               }}
             >
               <span className="font-semibold text-gray-600 leading-tight">{config.name}</span>

@@ -76,16 +76,20 @@
     },
     "bottomAnchor": {
       "id": "bottom_anchor",
-      "name": "4. Mobile Sticky Bottom Anchor Ad (Ala AdSense)",
+      "name": "4. Sticky Bottom Anchor Ad (Ala AdSense - Mobile & Desktop)",
       "slotPath": "/22282810983/lw5wflkevg_xqc_bottom_anchor",
       "sizes": [
         [
-          320,
-          50
+          728,
+          90
         ],
         [
           320,
           100
+        ],
+        [
+          320,
+          50
         ],
         [
           300,
