@@ -23,8 +23,26 @@ import {
   Zap,
   Gamepad2,
   Search,
+  Sparkles,
+  Shuffle,
+  KeyRound,
 } from 'lucide-react';
 import { compressImageToWebP } from '@/lib/imageCompressor';
+
+const RANDOM_ARTICLE_TOPICS = [
+  'High-Speed 4WD RC Monster Trucks with Off-Road Suspension',
+  'Ultimate Glow-in-the-Dark Loop Racing Track Sets for Kids',
+  'Die-Cast Alloy Supercar Collectors Guide & Stunt Ramps',
+  'Remote Control Amphibious Stunt Cars That Drive on Water & Land',
+  'STEM Building Block Racing Cars & Motorized Gear Kits',
+  '2.4GHz Drift RC Sports Cars for Living Room Hardwood Racing',
+  'Heavy-Duty RC Construction Excavator & Dump Truck Playsets',
+  'Rechargeable Wall-Climbing Gravity Defying RC Stunt Cars',
+  'Multi-Level Toy Parking Garage Playsets with Spiral Ramps',
+  'Transformable Robot Racing Cars with Interactive LED Lights',
+  'High-Torque Pullback Off-Road Buggies for Backyard Obstacle Courses',
+  'Mega Dino Truck Haulers & Dinosaur Rescue Vehicle Sets',
+];
 
 interface RawGameMonetizeItem {
   id: string;
@@ -61,6 +79,14 @@ export default function DashboardPage() {
   // YouTube Auto-Fetch & WebP Compression states
   const [ytQuickUrl, setYtQuickUrl] = useState('');
   const [fetchingYt, setFetchingYt] = useState<string | null>(null);
+
+  // Auto-Article Generator (Option 1: YouTube & Option 2: AI Topic) states
+  const [genYtUrl, setGenYtUrl] = useState('');
+  const [genAlsoAddVideo, setGenAlsoAddVideo] = useState(true);
+  const [genTopic, setGenTopic] = useState(RANDOM_ARTICLE_TOPICS[0]);
+  const [genStyle, setGenStyle] = useState<'review' | 'story' | 'guide'>('review');
+  const [generatingArticle, setGeneratingArticle] = useState<'youtube' | 'topic' | null>(null);
+  const [showGeminiKeyBox, setShowGeminiKeyBox] = useState(false);
 
   // Auth states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -399,6 +425,78 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error('Auto-save error:', err);
+    }
+  };
+
+  const pickRandomTopic = () => {
+    const others = RANDOM_ARTICLE_TOPICS.filter((t) => t !== genTopic);
+    const picked = others[Math.floor(Math.random() * others.length)] || RANDOM_ARTICLE_TOPICS[0];
+    setGenTopic(picked);
+  };
+
+  const generateArticleAuto = async (source: 'youtube' | 'topic') => {
+    if (!data || generatingArticle) return;
+    if (source === 'youtube' && !genYtUrl.trim()) {
+      alert('Masukkan link YouTube terlebih dahulu.');
+      return;
+    }
+    if (source === 'topic' && !genTopic.trim()) {
+      alert('Masukkan topik artikel atau klik tombol Acak Topik.');
+      return;
+    }
+
+    setGeneratingArticle(source);
+    try {
+      const res = await fetch('/api/generate-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source,
+          youtubeUrl: genYtUrl.trim(),
+          topic: genTopic.trim(),
+          style: genStyle,
+          alsoAddToFeaturedVideos: genAlsoAddVideo,
+          geminiApiKey: data.settings.geminiApiKey || '',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Gagal membuat artikel otomatis.');
+        return;
+      }
+
+      const nextArticles = [...data.articles, json.article as Article];
+      const nextFeatured = json.youtubeVideoCard
+        ? [json.youtubeVideoCard as FeaturedItem, ...(data.featuredItems || [])]
+        : data.featuredItems;
+
+      if (json.compressionSummary) {
+        setCompressionStats((prev) => ({
+          ...prev,
+          article_og: json.compressionSummary,
+        }));
+      }
+
+      const nextData: SiteData = {
+        ...data,
+        articles: nextArticles,
+        featuredItems: nextFeatured,
+      };
+
+      if (source === 'youtube') {
+        setGenYtUrl('');
+      }
+
+      setSelectedArticleIdx(nextArticles.length - 1);
+      await autoSaveSiteData(
+        nextData,
+        `Artikel "${json.article.title}" berhasil dibuat (${json.engineUsed}) & disimpan!`
+      );
+    } catch (err) {
+      console.error('Error generating article:', err);
+      alert('Terjadi kesalahan saat membuat artikel.');
+    } finally {
+      setGeneratingArticle(null);
     }
   };
 
@@ -922,11 +1020,233 @@ export default function DashboardPage() {
           {/* TAB 2: CONTENT & MULTI-ARTICLE MANAGER */}
           {activeTab === 'article' && (
             <div className="space-y-6">
+              {/* AUTO-ARTICLE GENERATOR STUDIO (OPTION 1: YOUTUBE & OPTION 2: AI TOPIC) */}
+              <div className="bg-gradient-to-br from-indigo-950/50 via-slate-900/90 to-slate-900/90 border border-indigo-500/30 rounded-xl p-5 space-y-5 shadow-lg">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3.5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-400" />
+                      <h2 className="text-base font-bold text-white">
+                        Auto-Article Generator (Tanpa Perlu Menulis Manual)
+                      </h2>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">
+                        <Zap className="w-3 h-3" />
+                        <span>Auto-WebP Cover (data/uploads)</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Buat artikel bahasa Inggris lengkap (500+ kata, aman untuk AdX &amp; kaya keyword CPC tinggi) hanya dengan 1x klik dari <strong>Link YouTube (Opsi 1)</strong> atau <strong>Topik / Ide Acak AI (Opsi 2)</strong>.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowGeminiKeyBox(!showGeminiKeyBox)}
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                      data.settings.geminiApiKey
+                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                        : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-300'
+                    }`}
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>
+                      {data.settings.geminiApiKey
+                        ? '✓ Gemini API Key Aktif'
+                        : 'Setting Gemini API Key (Opsional)'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Inline Collapsible Gemini API Key Box */}
+                {showGeminiKeyBox && (
+                  <div className="bg-slate-950/90 border border-amber-500/30 rounded-lg p-3.5 space-y-2 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold text-amber-300 flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>Google AI Studio — Gemini API Key (Free Tier tanpa Billing)</span>
+                      </span>
+                      <a
+                        href="https://aistudio.google.com/api-keys"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-blue-400 hover:underline flex items-center gap-1"
+                      >
+                        <span>Buka aistudio.google.com/api-keys</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="password"
+                        value={data.settings.geminiApiKey || ''}
+                        onChange={(e) => updateSetting('geminiApiKey', e.target.value)}
+                        placeholder="Paste API Key Default dari AI Studio (AIzaSy...) — Kosongkan jika ingin memakai AI Gratis bawaan"
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono outline-none focus:border-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          autoSaveSiteData(data, 'Gemini API Key berhasil disimpan!')
+                        }
+                        className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shrink-0 cursor-pointer"
+                      >
+                        Simpan API Key
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Jika diisi, generator otomatis memakai model <strong>Google Gemini 2.5 Flash</strong>. Jika dikosongkan, sistem otomatis memakai <strong>Free Cloud AI &amp; Smart Composer</strong>.
+                    </p>
+                  </div>
+                )}
+
+                {/* Common Style Selector */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-slate-400 font-medium">Gaya Penulisan Artikel:</span>
+                  {(
+                    [
+                      { id: 'review', label: '🏆 Review & Rekomendasi Mainan' },
+                      { id: 'story', label: '🏎️ Cerita Seru & Aksi Bermain' },
+                      { id: 'guide', label: '💡 Panduan Orang Tua (Buying Guide)' },
+                    ] as const
+                  ).map((st) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setGenStyle(st.id)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                        genStyle === st.id
+                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-xs'
+                          : 'bg-slate-950/70 text-slate-300 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 2 Columns: Option 1 (From YouTube Link) & Option 2 (From AI Topic / Random) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* OPSI 1: DARI LINK YOUTUBE */}
+                  <div className="bg-slate-950/70 border border-red-500/30 rounded-xl p-4 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-red-300 flex items-center gap-1.5">
+                          <PlaySquare className="w-4 h-4 text-red-400" />
+                          <span>Opsi 1: Buat Artikel dari Link YouTube</span>
+                        </span>
+                        <span className="text-[10px] bg-red-500/15 text-red-300 px-2 py-0.5 rounded font-semibold">
+                          Auto Judul + Thumb 16:9
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Paste link video YouTube. Sistem otomatis menarik topik &amp; mengompres thumbnail YouTube jadi cover artikel (<code>.webp</code>), lalu menuliskan artikel lengkapnya.
+                      </p>
+                      <input
+                        type="text"
+                        value={genYtUrl}
+                        onChange={(e) => setGenYtUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            generateArticleAuto('youtube');
+                          }
+                        }}
+                        placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..."
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono outline-none"
+                      />
+                      <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer pt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={genAlsoAddVideo}
+                          onChange={(e) => setGenAlsoAddVideo(e.target.checked)}
+                          className="rounded bg-slate-800 border-slate-700 text-red-600 w-3.5 h-3.5"
+                        />
+                        <span>Sekalian masukkan videonya ke daftar <strong>Featured Videos</strong></span>
+                      </label>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => generateArticleAuto('youtube')}
+                      disabled={generatingArticle !== null || !genYtUrl.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
+                    >
+                      {generatingArticle === 'youtube' ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Menulis Artikel &amp; Kompres Thumbnail...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Generate Artikel dari YouTube</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* OPSI 2: DARI TOPIK / IDE ACAK AI */}
+                  <div className="bg-slate-950/70 border border-indigo-500/30 rounded-xl p-4 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-indigo-400" />
+                          <span>Opsi 2: AI Topic &amp; Ide Acak Generator</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={pickRandomTopic}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 cursor-pointer transition-colors"
+                        >
+                          <Shuffle className="w-3 h-3" />
+                          <span>Acak Ide Topik</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Ketik topik singkat atau klik <strong>Acak Ide Topik</strong>. AI akan menulis cerita/ulasan baru yang unik beserta foto cover <code>.webp</code> otomatis.
+                      </p>
+                      <input
+                        type="text"
+                        value={genTopic}
+                        onChange={(e) => setGenTopic(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            generateArticleAuto('topic');
+                          }
+                        }}
+                        placeholder="Contoh: High-Speed 4WD RC Monster Trucks..."
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-lg px-3 py-2 text-xs text-slate-100 outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => generateArticleAuto('topic')}
+                      disabled={generatingArticle !== null || !genTopic.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
+                    >
+                      {generatingArticle === 'topic' ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>AI Sedang Menulis Artikel...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Generate Artikel AI Sekarang</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Article List & Switcher */}
               <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-base font-bold text-white">Daftar Artikel</h2>
+                    <h2 className="text-base font-bold text-white">Daftar Artikel ({data.articles.length})</h2>
                     <p className="text-xs text-slate-400">
                       Artikel urutan pertama (#1) otomatis menjadi artikel utama di Homepage (<code>/</code>).
                     </p>
@@ -2039,6 +2359,40 @@ export default function DashboardPage() {
                         placeholder="kt1RCNLmgpUZEKmp16w9"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Google AI Studio / Gemini API Key */}
+                <div className="border border-amber-500/30 bg-slate-950/60 rounded-lg p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-semibold text-sm text-amber-300 flex items-center gap-1.5">
+                      <KeyRound className="w-4 h-4" />
+                      <span>Google AI Studio — Gemini API Key (Free Tier)</span>
+                    </h3>
+                    <a
+                      href="https://aistudio.google.com/api-keys"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-blue-400 hover:underline flex items-center gap-1"
+                    >
+                      <span>Ambil API Key di aistudio.google.com/api-keys</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="text-xs space-y-1.5">
+                    <label className="block text-slate-400">
+                      Gemini API Key Default (Tanpa Billing — Menggunakan Model <code>gemini-2.5-flash</code>)
+                    </label>
+                    <input
+                      type="password"
+                      value={data.settings.geminiApiKey || ''}
+                      onChange={(e) => updateSetting('geminiApiKey', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-slate-200 font-mono"
+                      placeholder="AIzaSy... (Kosongkan jika ingin memakai AI Gratis bawaan)"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Digunakan untuk fitur <strong>Auto-Article Generator (Opsi 1 &amp; Opsi 2)</strong> di tab Articles. Jangan lupa klik <strong>Save All Changes</strong> setelah mengisi.
+                    </p>
                   </div>
                 </div>
 

@@ -19,6 +19,7 @@ export interface SiteSettings {
   mobileAutoScrollToTopAd: boolean;
   truncateOnAdTrafficOnly: boolean; // Truncate & Read More only for ad traffic
   adminPassword?: string; // Password for /dashboard access
+  geminiApiKey?: string; // Google AI Studio Gemini API Key (Free Tier supported)
 }
 
 export interface FeaturedItem {
