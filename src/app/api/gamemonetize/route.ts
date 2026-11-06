@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 
+sharp.cache(false);
+sharp.concurrency(1);
+
 const UPLOADS_DIR = path.join(process.cwd(), 'data', 'uploads');
 
 export interface RawGameMonetizeItem {

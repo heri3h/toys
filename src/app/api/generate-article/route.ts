@@ -4,6 +4,9 @@ import path from 'path';
 import sharp from 'sharp';
 import { getSiteData } from '@/lib/storage';
 
+sharp.cache(false);
+sharp.concurrency(1);
+
 const UPLOADS_DIR = path.join(process.cwd(), 'data', 'uploads');
 
 const CURATED_TOY_IMAGES = [
@@ -235,7 +238,7 @@ async function generateWithFreeAi(
 ): Promise<{ data: GeneratedArticleFields; modelUsed: string } | null> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 14000);
+    const timeout = setTimeout(() => controller.abort(), 4000);
     const res = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
