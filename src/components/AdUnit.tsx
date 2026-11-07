@@ -6,6 +6,13 @@ import { ChevronDown, ChevronUp, X } from 'lucide-react';
 
 declare global {
   interface Window {
+    mbelikKeys?: {
+      keyBnr: string;
+      keyInt: string;
+      keyAnc: string;
+    };
+    mbelikPricingVal?: string;
+    mbelikSlotInt?: any;
     googletag: {
       cmd: Array<() => void>;
       defineSlot: (path: string, size: number[][] | string, id: string) => any;
@@ -79,8 +86,14 @@ export const AdUnit: React.FC<AdUnitProps> = ({ config, className = '', isAdTraf
               .defineSlot(config.slotPath, responsiveSizes, slotDivId)
               ?.addService(window.googletag.pubads());
 
-            if (slot && config.tcpm) {
-              slot.setTargeting('liseer_pricing', config.tcpm);
+            const keyBnr =
+              window.mbelikKeys?.keyBnr || window.mbelikPricingVal || 'f10000';
+            if (slot) {
+              slot.setTargeting('mbelik_pricing', keyBnr);
+              console.log(
+                `💰 [AutoPricing SetTargeting Sync] Slot: ${config.id} | Key:`,
+                keyBnr
+              );
             }
             window.googletag.enableServices();
             window.googletag.display(slotDivId);
@@ -100,7 +113,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({ config, className = '', isAdTraf
       className={`ad-container my-4 text-center overflow-hidden transition-all duration-300 ${className}`}
     >
       <div className="text-[10px] tracking-wider uppercase text-gray-400 mb-1 font-mono">
-        ADVERTISEMENT {config.tcpm ? `• TCPM: ${config.tcpm}` : ''}
+        ADVERTISEMENT • AUTOPRICING
       </div>
 
       {/* Visual placeholder box in case live AdX is in test/fill mode */}
@@ -158,8 +171,10 @@ export const MobileBottomAnchorAd: React.FC<{
             .defineSlot(config.slotPath, responsiveSizes, slotDivId)
             ?.addService(window.googletag.pubads());
 
-          if (slot && config.tcpm) {
-            slot.setTargeting('liseer_pricing', config.tcpm);
+          const keyAnc = window.mbelikKeys?.keyAnc || 'f15000';
+          if (slot) {
+            slot.setTargeting('mbelik_pricing', keyAnc);
+            console.log('💰 [AutoPricing SetTargeting Sync] Slot: anchor | Key:', keyAnc);
           }
           window.googletag.enableServices();
           window.googletag.display(slotDivId);
@@ -178,7 +193,7 @@ export const MobileBottomAnchorAd: React.FC<{
         {/* AdSense-style top handle tab */}
         <div className="w-full flex items-center justify-between px-3 py-1 bg-white/95 backdrop-blur border-t border-x border-gray-200 rounded-t-xl shadow-sm">
           <span className="text-[9px] font-mono uppercase tracking-wider text-gray-400">
-            Ad • {config.tcpm ? `TCPM ${config.tcpm}` : 'Sponsored'}
+            Ad • Sponsored
           </span>
           <div className="flex items-center gap-1.5">
             <button
@@ -245,10 +260,14 @@ export const InterstitialAdUnit: React.FC<{
           if (format && window.googletag.defineOutOfPageSlot) {
             const interstitialSlot = window.googletag.defineOutOfPageSlot(config.slotPath, format);
             if (interstitialSlot) {
-              if (config.tcpm) {
-                interstitialSlot.setTargeting('liseer_pricing', config.tcpm);
-              }
+              const keyInt = window.mbelikKeys?.keyInt || 'f35000';
               interstitialSlot.addService(window.googletag.pubads());
+              interstitialSlot.setTargeting('mbelik_pricing', keyInt);
+              window.mbelikSlotInt = interstitialSlot;
+              console.log(
+                '💰 [AutoPricing SetTargeting Sync] Slot: interstitial | Key:',
+                keyInt
+              );
               window.googletag.enableServices();
               window.googletag.display(interstitialSlot);
             }

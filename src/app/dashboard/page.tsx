@@ -904,12 +904,17 @@ export default function DashboardPage() {
                     Google AdX Slots Configuration (7 Ad Units)
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Atur Ad Unit Path, ukuran iklan (Sizes), dan Target Pricing (TCPM) untuk ke-7 slot iklan Mobile &amp; Desktop.
+                    Atur Ad Unit Path dan ukuran iklan (Sizes). Harga lantai/target diatur otomatis oleh mesin <strong>AutoPricing (<code>mbelik_pricing</code>)</strong>.
                   </p>
                 </div>
-                <span className="text-xs font-semibold bg-blue-500/15 border border-blue-500/30 text-blue-300 px-3 py-1 rounded-full">
-                  Total: 7 Ad Units Aktif
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-3 py-1 rounded-full">
+                    ⚡ Zero-Fallback AutoPricing Aktif
+                  </span>
+                  <span className="text-xs font-semibold bg-blue-500/15 border border-blue-500/30 text-blue-300 px-3 py-1 rounded-full">
+                    Total: 7 Ad Units
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -929,41 +934,48 @@ export default function DashboardPage() {
 
                   const slotMeta: Record<
                     keyof SiteData['ads'],
-                    { badge: string; badgeClass: string; desc: string }
+                    { badge: string; badgeClass: string; pricingKeyLabel: string; desc: string }
                   > = {
                     homeTop: {
                       badge: '📱 Mobile + 💻 Desktop (Responsif)',
                       badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
                       desc: 'Tampil paling atas (Above the Fold) di bawah header pada halaman Artikel, Video (/watch), dan Game (/play). Ukuran otomatis difilter sesuai lebar layar.',
                     },
                     homeMore: {
                       badge: '📱 Mobile + 💻 Desktop (Responsif)',
                       badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
                       desc: 'Otomatis tampil di sela-sela Featured Videos & Featured Games saat scroll (atau setelah Read More), serta tepat di atas daftar Up Next Video/Game.',
                     },
                     inArticle: {
                       badge: '📱 Mobile + 💻 Desktop (Responsif)',
                       badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
                       desc: 'Otomatis tampil di bagian bawah halaman setelah daftar Featured Games begitu user melakukan scroll.',
                     },
                     bottomAnchor: {
                       badge: '📱 Mobile + 💻 Desktop (Sticky Bawah Ala AdSense)',
                       badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                      pricingKeyLabel: 'mbelik_pricing = keyAnc',
                       desc: 'Menempel melayang di bagian paling bawah layar HP maupun Desktop (otomatis 728x90 di Desktop & 320x50/320x100 di HP) lengkap dengan tombol lipat/tutup ala AdSense.',
                     },
                     interstitial: {
                       badge: '📱 Mobile + 💻 Desktop (Interstitial)',
                       badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+                      pricingKeyLabel: 'mbelik_pricing = keyInt',
                       desc: 'Iklan layar penuh (Vignette / Web Interstitial GPT) saat pengunjung berpindah halaman di Mobile maupun Desktop. Ukuran (Sizes) boleh dikosongkan.',
                     },
                     sidebarLeft: {
                       badge: '💻 Desktop Only',
                       badgeClass: 'bg-slate-800 text-slate-300 border-slate-700',
+                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
                       desc: 'Sticky banner di sisi kiri layar khusus pengunjung PC / Laptop.',
                     },
                     sidebarRight: {
                       badge: '💻 Desktop Only',
                       badgeClass: 'bg-slate-800 text-slate-300 border-slate-700',
+                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
                       desc: 'Sticky banner di sisi kanan layar khusus pengunjung PC / Laptop.',
                     },
                   };
@@ -1002,6 +1014,9 @@ export default function DashboardPage() {
                             >
                               {meta.badge}
                             </span>
+                            <span className="text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded">
+                              ⚡ {meta.pricingKeyLabel}
+                            </span>
                           </div>
                           <p className="text-[11px] text-slate-400">{meta.desc}</p>
                         </div>
@@ -1017,7 +1032,7 @@ export default function DashboardPage() {
                         </label>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
                         <div>
                           <label className="block text-slate-400 mb-1">Ad Unit Path</label>
                           <input
@@ -1027,21 +1042,27 @@ export default function DashboardPage() {
                             className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono text-xs focus:border-blue-500 outline-none"
                             placeholder="/22282810983/slot_name"
                           />
+                          <div className="flex items-center justify-between mt-3">
+                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+                              <input
+                                type="checkbox"
+                                checked={slot.lazyLoad}
+                                onChange={(e) =>
+                                  updateAdSlot(slotKey, { lazyLoad: e.target.checked })
+                                }
+                                className="rounded bg-slate-800 border-slate-700 text-blue-600 w-3.5 h-3.5"
+                              />
+                              <span>Lazy Load ad unit</span>
+                            </label>
+                            <span className="text-[11px] text-slate-500">
+                              Parsed:{' '}
+                              <code className="text-slate-300 font-mono">
+                                {JSON.stringify(slot.sizes)}
+                              </code>
+                            </span>
+                          </div>
                         </div>
 
-                        <div>
-                          <label className="block text-slate-400 mb-1">Target Pricing (TCPM)</label>
-                          <input
-                            type="text"
-                            value={slot.tcpm}
-                            onChange={(e) => updateAdSlot(slotKey, { tcpm: e.target.value })}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono text-xs focus:border-blue-500 outline-none"
-                            placeholder="125000"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
                         <div>
                           <label className="block text-slate-400 mb-1">
                             Ad Sizes (format: <code>300x250, 336x280</code>)
@@ -1070,26 +1091,6 @@ export default function DashboardPage() {
                               </button>
                             ))}
                           </div>
-                        </div>
-
-                        <div className="flex flex-col justify-between pt-5">
-                          <div className="text-[11px] text-slate-500">
-                            Parsed JSON:{' '}
-                            <code className="text-slate-300 font-mono">
-                              {JSON.stringify(slot.sizes)}
-                            </code>
-                          </div>
-                          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300 mt-2">
-                            <input
-                              type="checkbox"
-                              checked={slot.lazyLoad}
-                              onChange={(e) =>
-                                updateAdSlot(slotKey, { lazyLoad: e.target.checked })
-                              }
-                              className="rounded bg-slate-800 border-slate-700 text-blue-600 w-3.5 h-3.5"
-                            />
-                            <span>Lazy Load ad unit</span>
-                          </label>
                         </div>
                       </div>
                     </div>
