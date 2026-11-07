@@ -137,9 +137,9 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
 
       <div className="max-w-[1360px] mx-auto px-2 py-4 flex flex-col lg:flex-row gap-5 justify-center items-stretch">
         {/* Left Sticky Sidebar (slot: side) */}
-        <aside className="hidden xl:block w-[300px] flex-shrink-0 self-stretch">
+        <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
           <div className="sticky top-4 z-10">
-            <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+            <AdUnit slotKey="side" placement="desktop-only" isAdTraffic={isAdTraffic} />
           </div>
         </aside>
 
@@ -334,8 +334,8 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
               )}
 
               {/* Bottom Content Ad (slot: side on mobile/tablet where left sidebar is hidden) */}
-              <div className="xl:hidden mt-6 pt-4 border-t border-gray-100">
-                <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+              <div className="lg:hidden mt-6 pt-4 border-t border-gray-100">
+                <AdUnit slotKey="side" placement="mobile-only" isAdTraffic={isAdTraffic} />
               </div>
             </div>
           )}
@@ -344,7 +344,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
         {/* Right Sticky Sidebar (slot: side2) */}
         <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
           <div className="sticky top-4 z-10">
-            <AdUnit slotKey="side2" isAdTraffic={isAdTraffic} />
+            <AdUnit slotKey="side2" placement="desktop-only" isAdTraffic={isAdTraffic} />
           </div>
         </aside>
       </div>

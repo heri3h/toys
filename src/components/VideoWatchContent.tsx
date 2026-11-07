@@ -165,7 +165,7 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
         {/* Left Sticky Sidebar (slot: side) */}
         <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
           <div className="sticky top-14 z-10">
-            <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+            <AdUnit slotKey="side" placement="desktop-only" isAdTraffic={isAdTraffic} />
           </div>
         </aside>
 
@@ -581,14 +581,14 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
 
           {/* Bottom Content Ad on Mobile/Tablet (slot: side) */}
           <div className="lg:hidden pt-3 border-t border-gray-100">
-            <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+            <AdUnit slotKey="side" placement="mobile-only" isAdTraffic={isAdTraffic} />
           </div>
         </div>
 
         {/* Right Sticky Sidebar (slot: side2) */}
         <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
           <div className="sticky top-14 z-10">
-            <AdUnit slotKey="side2" isAdTraffic={isAdTraffic} />
+            <AdUnit slotKey="side2" placement="desktop-only" isAdTraffic={isAdTraffic} />
           </div>
         </aside>
       </div>

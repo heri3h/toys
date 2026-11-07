@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, X } from 'lucide-react';
 
 export type MbelikSlotKey = 'header' | 'feed' | 'side' | 'side2';
 
@@ -23,6 +22,7 @@ declare global {
     mbelikResolveSlotKey?: (slotPath: string, fmtName: 'bnr' | 'int' | 'anc') => string;
     mbelikPricingVal?: string;
     mbelikSlotInt?: any;
+    mbelikSlotSticky?: any;
     googletag: {
       cmd: Array<() => void>;
       defineSlot: (path: string, size: number[][] | string, id: string) => any;
@@ -52,8 +52,6 @@ const DEFAULT_AD_UNITS: Record<MbelikSlotKey | 'interstitial' | 'anchor', string
 
 const SLOT_DEFAULT_SIZES: Record<MbelikSlotKey, number[][]> = {
   header: [
-    [970, 250],
-    [728, 90],
     [336, 280],
     [300, 250],
     [320, 100],
@@ -61,20 +59,16 @@ const SLOT_DEFAULT_SIZES: Record<MbelikSlotKey, number[][]> = {
     [250, 50],
   ],
   feed: [
-    [336, 280],
     [300, 250],
-    [320, 100],
-    [320, 50],
+    [336, 280],
   ],
   side: [
-    [300, 600],
-    [336, 280],
     [300, 250],
+    [300, 600],
   ],
   side2: [
-    [300, 600],
     [300, 250],
-    [160, 600],
+    [300, 600],
   ],
 };
 
@@ -95,14 +89,21 @@ function getResponsiveSizes(
   slotKey: MbelikSlotKey
 ): number[][] {
   let pool = configuredSizes;
-  // On mobile in-page bottom slot ('side'), prefer medium rectangles over 300x600 skyscraper
-  if (isMobileViewport && slotKey === 'side') {
-    pool = [
-      [336, 280],
-      [300, 250],
-      [320, 100],
-      [320, 50],
-    ];
+  if (isMobileViewport) {
+    if (slotKey === 'header') {
+      pool = [
+        [320, 100],
+        [320, 50],
+        [300, 250],
+        [250, 50],
+      ];
+    } else if (slotKey === 'side') {
+      // On mobile in-page bottom slot ('side'), use medium rectangles instead of 300x600
+      pool = [
+        [300, 250],
+        [336, 280],
+      ];
+    }
   }
   const fitting = pool.filter(([w]) => w <= maxWidth);
   if (fitting.length > 0) return fitting;
@@ -112,28 +113,60 @@ function getResponsiveSizes(
 
 interface AdUnitProps {
   slotKey: MbelikSlotKey;
+  placement?: 'all' | 'desktop-only' | 'mobile-only';
   className?: string;
   isAdTraffic?: boolean;
 }
 
-export const AdUnit: React.FC<AdUnitProps> = ({ slotKey, className = '' }) => {
+export const AdUnit: React.FC<AdUnitProps> = ({
+  slotKey,
+  placement = 'all',
+  className = '',
+}) => {
   const adRef = useRef<HTMLDivElement>(null);
+  const definedRef = useRef(false);
+  const [shouldRender, setShouldRender] = useState<boolean>(false);
   const [slotDivId] = useState(
     () => `div-gpt-ad-${slotKey}-${Math.random().toString(36).substring(2, 9)}`
   );
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const viewportW = window.innerWidth;
+    const isDesktop = viewportW >= 1024;
+
+    if (placement === 'desktop-only' && !isDesktop) {
+      setShouldRender(false);
+      return;
+    }
+    if (placement === 'mobile-only' && isDesktop) {
+      setShouldRender(false);
+      return;
+    }
+    setShouldRender(true);
+  }, [placement]);
+
+  useEffect(() => {
+    if (!shouldRender || definedRef.current) return;
+
     ensureGptLoaded();
 
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
+          if (definedRef.current) return;
+          // Double guard: never request ad if container is hidden via CSS (display: none)
+          if (adRef.current && adRef.current.offsetParent === null) {
+            return;
+          }
+
+          definedRef.current = true;
           const slotPath =
             window.MBELIK_AD_UNITS?.[slotKey] || DEFAULT_AD_UNITS[slotKey];
           const viewportW = typeof window !== 'undefined' ? window.innerWidth : 360;
           const isMobileViewport = viewportW < 1024;
           const containerWidth =
-            adRef.current?.clientWidth || Math.max(viewportW - 24, 300);
+            adRef.current?.clientWidth || Math.min(Math.max(viewportW - 32, 300), 632);
 
           const responsiveSizes = getResponsiveSizes(
             SLOT_DEFAULT_SIZES[slotKey],
@@ -166,7 +199,9 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotKey, className = '' }) => {
         }
       });
     }
-  }, [slotKey, slotDivId]);
+  }, [shouldRender, slotKey, slotDivId]);
+
+  if (!shouldRender) return null;
 
   return (
     <div
@@ -185,20 +220,17 @@ export const AdUnit: React.FC<AdUnitProps> = ({ slotKey, className = '' }) => {
 };
 
 /**
- * Sticky Bottom Anchor Ad (Ala AdSense - Mobile & Desktop)
- * Reads `anchor` slot path automatically from `pricing_config.json` (`window.MBELIK_AD_UNITS.anchor`).
+ * Native GPT Sticky Bottom Anchor Ad (`OutOfPageFormat.BOTTOM_ANCHOR`)
+ * Identical to `slotSticky` in `AdsHeader.php` on the other domains.
  */
 export const MobileBottomAnchorAd: React.FC<{
   isAdTraffic?: boolean;
 }> = () => {
-  const [closed, setClosed] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [slotDivId] = useState(
-    () => `div-gpt-ad-anchor-${Math.random().toString(36).substring(2, 9)}`
-  );
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (closed) return;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
     ensureGptLoaded();
 
@@ -207,100 +239,46 @@ export const MobileBottomAnchorAd: React.FC<{
         try {
           const slotPath =
             window.MBELIK_AD_UNITS?.anchor || DEFAULT_AD_UNITS.anchor;
-          const viewportW = typeof window !== 'undefined' ? window.innerWidth - 16 : 360;
-          const baseSizes: number[][] =
-            viewportW >= 740
-              ? [
-                  [728, 90],
-                  [320, 100],
-                  [320, 50],
-                ]
-              : [
-                  [320, 100],
-                  [320, 50],
-                  [300, 50],
-                  [250, 50],
-                ];
-
-          const slot = window.googletag
-            .defineSlot(slotPath, baseSizes, slotDivId)
-            ?.addService(window.googletag.pubads());
-
-          const keyAnc =
-            window.mbelikResolveSlotKey?.(slotPath, 'anc') ||
-            window.mbelikKeys?.keyAnc ||
-            'f15000';
-
-          if (slot) {
-            slot.setTargeting('mbelik_pricing', keyAnc);
-            console.log(
-              `💰 [AutoPricing SetTargeting Sync] Slot: anchor (${slotPath}) | Key:`,
-              keyAnc
-            );
+          const format = window.googletag.enums?.OutOfPageFormat?.BOTTOM_ANCHOR;
+          if (format && window.googletag.defineOutOfPageSlot) {
+            const stickySlot = window.googletag.defineOutOfPageSlot(slotPath, format);
+            if (stickySlot) {
+              const keyAnc =
+                window.mbelikResolveSlotKey?.(slotPath, 'anc') ||
+                window.mbelikKeys?.keyAnc ||
+                'f15000';
+              stickySlot.addService(window.googletag.pubads());
+              stickySlot.setTargeting('mbelik_pricing', keyAnc);
+              window.mbelikSlotSticky = stickySlot;
+              console.log(
+                `💰 [AutoPricing SetTargeting Sync] Slot: anchor (${slotPath}) | Key:`,
+                keyAnc
+              );
+              window.googletag.enableServices();
+              window.googletag.display(stickySlot);
+            }
           }
-          window.googletag.enableServices();
-          window.googletag.display(slotDivId);
         } catch (e) {
           console.warn('Bottom anchor ad initialization failed:', e);
         }
       });
     }
-  }, [slotDivId, closed]);
+  }, []);
 
-  if (closed) return null;
-
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-40 pointer-events-none">
-      <div className="max-w-[760px] mx-auto flex flex-col items-center pointer-events-auto">
-        {/* AdSense-style top handle tab */}
-        <div className="w-full flex items-center justify-between px-3 py-1 bg-white/95 backdrop-blur border-t border-x border-gray-200 rounded-t-xl shadow-sm">
-          <span className="text-[9px] font-mono uppercase tracking-wider text-gray-400">
-            Ad • Sponsored
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setCollapsed(!collapsed)}
-              title={collapsed ? 'Expand Ad' : 'Collapse Ad'}
-              className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors"
-            >
-              {collapsed ? (
-                <ChevronUp className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setClosed(true)}
-              title="Close Ad"
-              className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Sticky Banner Body */}
-        {!collapsed && (
-          <div className="w-full bg-white/98 backdrop-blur border-t border-gray-100 py-1.5 px-2 shadow-2xl flex justify-center overflow-hidden">
-            <div
-              id={slotDivId}
-              className="mx-auto flex items-center justify-center min-h-[50px] max-w-full"
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return null;
 };
 
 /**
- * Full-Page Interstitial / Vignette Ad (GPT Out-Of-Page)
- * Reads `interstitial` slot path automatically from `pricing_config.json` (`window.MBELIK_AD_UNITS.interstitial`).
+ * Native GPT Full-Page Interstitial / Vignette Ad (`OutOfPageFormat.INTERSTITIAL`)
+ * Identical to `slotInt` in `AdsHeader.php` on the other domains.
  */
 export const InterstitialAdUnit: React.FC = () => {
+  const initializedRef = useRef(false);
+
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     ensureGptLoaded();
 
     if (window.googletag && window.googletag.cmd) {
@@ -336,5 +314,6 @@ export const InterstitialAdUnit: React.FC = () => {
 
   return null;
 };
+
 
 

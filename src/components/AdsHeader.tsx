@@ -208,6 +208,7 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
     window.googletag.pubads().setTargeting('domain', currentDomain);
     window.googletag.pubads().setTargeting('device_type', userDevice);
     window.googletag.pubads().setTargeting('mbelik_pricing', keys.keyBnr);
+    window.googletag.pubads().collapseEmptyDivs();
 
     window.googletag.pubads().addEventListener('slotRenderEnded', function(event) {
       var slot = event.slot;
@@ -236,7 +237,10 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
       if (currentRule && currentRule.cpm) {
         estimatedECPM = currentRule.cpm;
       } else if (pricingKey === 'google_optimize') {
-        var fmtKey = (path.indexOf('int') !== -1 || path.indexOf('-5') !== -1) ? 'int' : ((path.indexOf('anc') !== -1 || path.indexOf('sticky') !== -1 || path.indexOf('-6') !== -1) ? 'anc' : 'bnr');
+        var adUnitsCfg = window.MBELIK_AD_UNITS || {};
+        var isIntSlot = (adUnitsCfg.interstitial && path === adUnitsCfg.interstitial) || path.indexOf('int') !== -1 || path.indexOf('-5') !== -1 || path.indexOf('-12') !== -1;
+        var isAncSlot = (adUnitsCfg.anchor && path === adUnitsCfg.anchor) || path.indexOf('anc') !== -1 || path.indexOf('sticky') !== -1 || path.indexOf('-6') !== -1 || path.indexOf('-13') !== -1;
+        var fmtKey = isIntSlot ? 'int' : (isAncSlot ? 'anc' : 'bnr');
         var cpData = window.MBELIK_INLINE_CURRENT_PRICING || null;
         if (cpData && cpData.summary && cpData.summary[fmtKey] && cpData.summary[fmtKey].ecpm) {
           estimatedECPM = parseFloat(cpData.summary[fmtKey].ecpm) || 0.0;
