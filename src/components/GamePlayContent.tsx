@@ -72,23 +72,19 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
 
       {/* Main 3-Column Arbitrage Layout */}
       <div className="max-w-[1320px] mx-auto px-2 sm:px-4 py-4 flex justify-center items-stretch gap-4">
-        {/* Left Sticky Sidebar */}
-        {ads.sidebarLeft.enabled && (
-          <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
-            <div className="sticky top-14 z-10">
-              <AdUnit config={ads.sidebarLeft} isAdTraffic={isAdTraffic} />
-            </div>
-          </aside>
-        )}
+        {/* Left Sticky Sidebar (slot: side) */}
+        <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
+          <div className="sticky top-14 z-10">
+            <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+          </div>
+        </aside>
 
         {/* Center Game Column */}
         <div className="w-full max-w-[660px] bg-white rounded-xl shadow-xs border border-gray-100 p-4 sm:p-6 space-y-6">
-          {/* Top Ad Slot (With generous bottom margin before Game Box for AdX Accidental Click Safety) */}
-          {ads.homeTop.enabled && (
-            <div className="pb-3 border-b border-gray-100">
-              <AdUnit config={ads.homeTop} isAdTraffic={isAdTraffic} />
-            </div>
-          )}
+          {/* Top Ad Slot (slot: header) */}
+          <div className="pb-3 border-b border-gray-100">
+            <AdUnit slotKey="header" isAdTraffic={isAdTraffic} />
+          </div>
 
           {/* CLICK-TO-PLAY GAME STAGE */}
           <div
@@ -194,12 +190,10 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
             </div>
           </div>
 
-          {/* POIN 2: Mid-Page Ad Slot (homeMore) directly above More Games grid for maximum mobile thumb-zone viewability */}
-          {ads.homeMore.enabled && (
-            <div className="py-1">
-              <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
-            </div>
-          )}
+          {/* Mid-Page Ad Slot (slot: feed) directly above More Games grid */}
+          <div className="py-1">
+            <AdUnit slotKey="feed" isAdTraffic={isAdTraffic} />
+          </div>
 
           {/* SECTION 1: MORE GAMES TO PLAY (Square 1:1 Grid) */}
           {otherGames.length > 0 && (
@@ -308,29 +302,25 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
             </div>
           )}
 
-          {/* Bottom In-Article Ad */}
-          {ads.inArticle.enabled && (
-            <div className="pt-3 border-t border-gray-100">
-              <AdUnit config={ads.inArticle} isAdTraffic={isAdTraffic} />
-            </div>
-          )}
+          {/* Bottom Content Ad on Mobile/Tablet (slot: side) */}
+          <div className="lg:hidden pt-3 border-t border-gray-100">
+            <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+          </div>
         </div>
 
-        {/* Right Sticky Sidebar */}
-        {ads.sidebarRight.enabled && (
-          <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
-            <div className="sticky top-14 z-10">
-              <AdUnit config={ads.sidebarRight} isAdTraffic={isAdTraffic} />
-            </div>
-          </aside>
-        )}
+        {/* Right Sticky Sidebar (slot: side2) */}
+        <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
+          <div className="sticky top-14 z-10">
+            <AdUnit slotKey="side2" isAdTraffic={isAdTraffic} />
+          </div>
+        </aside>
       </div>
 
-      {/* Unit #4: Mobile Sticky Bottom Anchor Ad (Ala AdSense) */}
-      <MobileBottomAnchorAd config={ads.bottomAnchor} isAdTraffic={isAdTraffic} />
+      {/* Sticky Bottom Anchor Ad (slot: anchor from pricing_config.json) */}
+      <MobileBottomAnchorAd isAdTraffic={isAdTraffic} />
 
-      {/* Unit #5: Full-Page Interstitial / Vignette Ad */}
-      <InterstitialAdUnit config={ads.interstitial} />
+      {/* Full-Page Interstitial / Vignette Ad (slot: interstitial from pricing_config.json) */}
+      <InterstitialAdUnit />
     </div>
   );
 };

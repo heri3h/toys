@@ -58,8 +58,8 @@ interface RawGameMonetizeItem {
 export default function DashboardPage() {
   const [data, setData] = useState<SiteData | null>(null);
   const [activeTab, setActiveTab] = useState<
-    'ads' | 'article' | 'featured' | 'games' | 'settings'
-  >('ads');
+    'article' | 'featured' | 'games' | 'settings'
+  >('article');
   const [selectedArticleIdx, setSelectedArticleIdx] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -812,21 +812,6 @@ export default function DashboardPage() {
         {/* Navigation Tabs (Sidebar) */}
         <div className="md:col-span-1 space-y-2">
           <button
-            onClick={() => setActiveTab('ads')}
-            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-3 transition-colors ${
-              activeTab === 'ads'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-slate-900/60 hover:bg-slate-800 text-slate-300'
-            }`}
-          >
-            <DollarSign className="w-4 h-4 shrink-0" />
-            <div>
-              <p className="font-semibold leading-none">AdX Placements</p>
-              <p className="text-[11px] opacity-75 mt-1">Slots, sizes &amp; TCPM floor</p>
-            </div>
-          </button>
-
-          <button
             onClick={() => setActiveTab('article')}
             className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-3 transition-colors ${
               activeTab === 'article'
@@ -891,216 +876,22 @@ export default function DashboardPage() {
               <p className="text-[11px] opacity-75 mt-1">GCLID rules, branding &amp; security</p>
             </div>
           </button>
+
+          {/* Info Card: Managed by admin.mbelik.com */}
+          <div className="mt-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300">
+              <Zap className="w-3.5 h-3.5" />
+              <span>AutoPricing &amp; AdUnits Sync</span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              6 Ad Units (<code>header</code>, <code>feed</code>, <code>side</code>, <code>side2</code>, <code>interstitial</code>, <code>anchor</code>), <code>mbelik_pricing</code>, &amp; Konversi Google Ads dikelola terpusat via <strong>admin.mbelik.com</strong> (<code>pricing_config.json</code> &amp; <code>current_pricing.json</code>).
+            </p>
+          </div>
         </div>
 
         {/* Tab Contents Area */}
         <div className="md:col-span-3">
-          {/* TAB 1: ADX PLACEMENTS (7 AD UNITS) */}
-          {activeTab === 'ads' && (
-            <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-6 space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold text-white">
-                    Google AdX Slots Configuration (7 Ad Units)
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Atur Ad Unit Path dan ukuran iklan (Sizes). Harga lantai/target diatur otomatis oleh mesin <strong>AutoPricing (<code>mbelik_pricing</code>)</strong>.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-3 py-1 rounded-full">
-                    ⚡ Zero-Fallback AutoPricing Aktif
-                  </span>
-                  <span className="text-xs font-semibold bg-blue-500/15 border border-blue-500/30 text-blue-300 px-3 py-1 rounded-full">
-                    Total: 7 Ad Units
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {(
-                  [
-                    'homeTop',
-                    'homeMore',
-                    'inArticle',
-                    'bottomAnchor',
-                    'interstitial',
-                    'sidebarLeft',
-                    'sidebarRight',
-                  ] as Array<keyof SiteData['ads']>
-                ).map((slotKey, index) => {
-                  const slot = data.ads[slotKey];
-                  if (!slot) return null;
-
-                  const slotMeta: Record<
-                    keyof SiteData['ads'],
-                    { badge: string; badgeClass: string; pricingKeyLabel: string; desc: string }
-                  > = {
-                    homeTop: {
-                      badge: '📱 Mobile + 💻 Desktop (Responsif)',
-                      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
-                      desc: 'Tampil paling atas (Above the Fold) di bawah header pada halaman Artikel, Video (/watch), dan Game (/play). Ukuran otomatis difilter sesuai lebar layar.',
-                    },
-                    homeMore: {
-                      badge: '📱 Mobile + 💻 Desktop (Responsif)',
-                      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
-                      desc: 'Otomatis tampil di sela-sela Featured Videos & Featured Games saat scroll (atau setelah Read More), serta tepat di atas daftar Up Next Video/Game.',
-                    },
-                    inArticle: {
-                      badge: '📱 Mobile + 💻 Desktop (Responsif)',
-                      badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
-                      desc: 'Otomatis tampil di bagian bawah halaman setelah daftar Featured Games begitu user melakukan scroll.',
-                    },
-                    bottomAnchor: {
-                      badge: '📱 Mobile + 💻 Desktop (Sticky Bawah Ala AdSense)',
-                      badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-                      pricingKeyLabel: 'mbelik_pricing = keyAnc',
-                      desc: 'Menempel melayang di bagian paling bawah layar HP maupun Desktop (otomatis 728x90 di Desktop & 320x50/320x100 di HP) lengkap dengan tombol lipat/tutup ala AdSense.',
-                    },
-                    interstitial: {
-                      badge: '📱 Mobile + 💻 Desktop (Interstitial)',
-                      badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
-                      pricingKeyLabel: 'mbelik_pricing = keyInt',
-                      desc: 'Iklan layar penuh (Vignette / Web Interstitial GPT) saat pengunjung berpindah halaman di Mobile maupun Desktop. Ukuran (Sizes) boleh dikosongkan.',
-                    },
-                    sidebarLeft: {
-                      badge: '💻 Desktop Only',
-                      badgeClass: 'bg-slate-800 text-slate-300 border-slate-700',
-                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
-                      desc: 'Sticky banner di sisi kiri layar khusus pengunjung PC / Laptop.',
-                    },
-                    sidebarRight: {
-                      badge: '💻 Desktop Only',
-                      badgeClass: 'bg-slate-800 text-slate-300 border-slate-700',
-                      pricingKeyLabel: 'mbelik_pricing = keyBnr',
-                      desc: 'Sticky banner di sisi kanan layar khusus pengunjung PC / Laptop.',
-                    },
-                  };
-
-                  const meta = slotMeta[slotKey];
-                  const presets: Array<[number, number]> = [
-                    [300, 250],
-                    [336, 280],
-                    [728, 90],
-                    [468, 60],
-                    [320, 100],
-                    [320, 50],
-                    [300, 50],
-                    [300, 300],
-                    [300, 600],
-                    [160, 600],
-                  ];
-
-                  return (
-                    <div
-                      key={slotKey}
-                      className="border border-slate-800 bg-slate-950/60 rounded-lg p-4 space-y-3"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11px] font-extrabold bg-blue-600 text-white px-2 py-0.5 rounded">
-                              #{index + 1} / 7
-                            </span>
-                            <span className="font-bold text-sm text-slate-100">{slot.name}</span>
-                            <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded">
-                              {slot.id}
-                            </span>
-                            <span
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${meta.badgeClass}`}
-                            >
-                              {meta.badge}
-                            </span>
-                            <span className="text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded">
-                              ⚡ {meta.pricingKeyLabel}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400">{meta.desc}</p>
-                        </div>
-
-                        <label className="flex items-center gap-2 cursor-pointer text-xs">
-                          <span className="text-slate-400">Enabled:</span>
-                          <input
-                            type="checkbox"
-                            checked={slot.enabled}
-                            onChange={(e) => updateAdSlot(slotKey, { enabled: e.target.checked })}
-                            className="w-4 h-4 rounded text-blue-600 bg-slate-800 border-slate-700"
-                          />
-                        </label>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-                        <div>
-                          <label className="block text-slate-400 mb-1">Ad Unit Path</label>
-                          <input
-                            type="text"
-                            value={slot.slotPath}
-                            onChange={(e) => updateAdSlot(slotKey, { slotPath: e.target.value })}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono text-xs focus:border-blue-500 outline-none"
-                            placeholder="/22282810983/slot_name"
-                          />
-                          <div className="flex items-center justify-between mt-3">
-                            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
-                              <input
-                                type="checkbox"
-                                checked={slot.lazyLoad}
-                                onChange={(e) =>
-                                  updateAdSlot(slotKey, { lazyLoad: e.target.checked })
-                                }
-                                className="rounded bg-slate-800 border-slate-700 text-blue-600 w-3.5 h-3.5"
-                              />
-                              <span>Lazy Load ad unit</span>
-                            </label>
-                            <span className="text-[11px] text-slate-500">
-                              Parsed:{' '}
-                              <code className="text-slate-300 font-mono">
-                                {JSON.stringify(slot.sizes)}
-                              </code>
-                            </span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-slate-400 mb-1">
-                            Ad Sizes (format: <code>300x250, 336x280</code>)
-                          </label>
-                          <input
-                            type="text"
-                            value={sizeInputs[slotKey] ?? formatSizesToString(slot.sizes)}
-                            onChange={(e) => handleSizeInputChange(slotKey, e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono text-xs focus:border-blue-500 outline-none"
-                            placeholder={
-                              slotKey === 'interstitial'
-                                ? 'Kosongkan untuk Out-of-Page Interstitial'
-                                : '300x250, 336x280'
-                            }
-                          />
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                            <span className="text-[10px] text-slate-500">+ Quick Add:</span>
-                            {presets.map(([w, h]) => (
-                              <button
-                                key={`${w}x${h}`}
-                                type="button"
-                                onClick={() => addPresetSize(slotKey, [w, h])}
-                                className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
-                              >
-                                {w}x{h}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: CONTENT & MULTI-ARTICLE MANAGER */}
+          {/* TAB 1: CONTENT & MULTI-ARTICLE MANAGER */}
           {activeTab === 'article' && (
             <div className="space-y-6">
               {/* AUTO-ARTICLE GENERATOR STUDIO (OPTION 1: YOUTUBE & OPTION 2: AI TOPIC) */}
@@ -2402,47 +2193,6 @@ export default function DashboardPage() {
                     onChange={(e) => updateSetting('mobileAutoScrollToTopAd', e.target.checked)}
                     className="w-5 h-5 rounded text-blue-600 bg-slate-800 border-slate-700"
                   />
-                </div>
-
-                {/* Analytics / Conversion IDs */}
-                <div className="border border-slate-800 bg-slate-950/60 rounded-lg p-4 space-y-3">
-                  <h3 className="font-semibold text-sm text-slate-200">
-                    Tracking &amp; Conversion IDs
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                    <div>
-                      <label className="block text-slate-400 mb-1">Google Analytics ID</label>
-                      <input
-                        type="text"
-                        value={data.settings.gaMeasurementId}
-                        onChange={(e) => updateSetting('gaMeasurementId', e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
-                        placeholder="G-XXXXXX"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 mb-1">Google Ads Account ID</label>
-                      <input
-                        type="text"
-                        value={data.settings.googleAdsId}
-                        onChange={(e) => updateSetting('googleAdsId', e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
-                        placeholder="AW-XXXXXX"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 mb-1">
-                        Google Ads Conversion Label
-                      </label>
-                      <input
-                        type="text"
-                        value={data.settings.googleAdsConversionLabel || ''}
-                        onChange={(e) => updateSetting('googleAdsConversionLabel', e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 font-mono"
-                        placeholder="kt1RCNLmgpUZEKmp16w9"
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Google AI Studio / Gemini API Key */}

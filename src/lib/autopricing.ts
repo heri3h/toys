@@ -93,6 +93,8 @@ export function getAutoPricingPayload() {
   const pricingConfigCandidates = [
     '/home/mbummm/web/toys.gledeg.com/public_html/pricing_config.json',
     '/home/mbummm/web/toys.gledeg.com/node_app/data/pricing_config.json',
+    '/home/mbummm/web/gledeg.com/public_html/pricing_config.json',
+    '/home/mbummm/web/spotgames.top/public_html/pricing_config.json',
     '/home/mbummm/web/admin.mbelik.com/public_html/pricing_config.json',
     path.join(process.cwd(), 'data', 'pricing_config.json'),
   ];
@@ -108,13 +110,23 @@ export function getAutoPricingPayload() {
   const cfgJson = tryReadJsonFile(pricingConfigCandidates) || DEFAULT_PRICING_CONFIG;
   const cpJson = tryReadJsonFile(currentPricingCandidates) || null;
 
+  const rawUnits = cfgJson?.ad_units || {};
+  const adUnits = {
+    header: rawUnits.header || '/22806125615/play-1',
+    feed: rawUnits.feed || '/22806125615/play-2',
+    side: rawUnits.side1 || rawUnits.side || '/22806125615/play-3',
+    side2: rawUnits.side2 || rawUnits.side_2 || '/22806125615/play-4',
+    interstitial: rawUnits.interstitial || '/22806125615/play-5',
+    anchor: rawUnits.anchor || '/22806125615/play-6',
+  };
+
   let fallbackBnr = 'f10000';
   let fallbackInt = 'f35000';
   let fallbackAnc = 'f15000';
 
   if (cpJson && cpJson.summary) {
     const s = cpJson.summary;
-    const bnrEcpm = parseFloat(s?.bnr?.ecpm ?? 0);
+    const bnrEcpm = parseFloat(s?.bnr?.ecpm ?? s?.mobile?.bnr?.ecpm ?? 0);
     if (bnrEcpm > 0) {
       if (bnrEcpm >= 30000) fallbackBnr = 'f30000';
       else if (bnrEcpm >= 25000) fallbackBnr = 'f25000';
@@ -126,7 +138,7 @@ export function getAutoPricingPayload() {
       else if (bnrEcpm >= 4000) fallbackBnr = 'f4000';
     }
 
-    const intEcpm = parseFloat(s?.int?.ecpm ?? 0);
+    const intEcpm = parseFloat(s?.int?.ecpm ?? s?.mobile?.int?.ecpm ?? 0);
     if (intEcpm > 0) {
       if (intEcpm >= 35000) fallbackInt = 'f35000';
       else if (intEcpm >= 30000) fallbackInt = 'f30000';
@@ -139,7 +151,7 @@ export function getAutoPricingPayload() {
       else if (intEcpm >= 4000) fallbackInt = 'f4000';
     }
 
-    const ancEcpm = parseFloat(s?.anc?.ecpm ?? 0);
+    const ancEcpm = parseFloat(s?.anc?.ecpm ?? s?.mobile?.anc?.ecpm ?? 0);
     if (ancEcpm > 0) {
       if (ancEcpm >= 30000) fallbackAnc = 'f30000';
       else if (ancEcpm >= 25000) fallbackAnc = 'f25000';
@@ -155,6 +167,7 @@ export function getAutoPricingPayload() {
   return {
     cfgJson,
     cpJson,
+    adUnits,
     fallbackBnr,
     fallbackInt,
     fallbackAnc,

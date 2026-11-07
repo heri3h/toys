@@ -136,14 +136,12 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
       <AdOverlay show={overlayActive} />
 
       <div className="max-w-[1360px] mx-auto px-2 py-4 flex flex-col lg:flex-row gap-5 justify-center items-stretch">
-        {/* Left Sticky Sidebar (AdX Left) */}
-        {ads.sidebarLeft.enabled && (
-          <aside className="hidden xl:block w-[300px] flex-shrink-0 self-stretch">
-            <div className="sticky top-4 z-10">
-              <AdUnit config={ads.sidebarLeft} isAdTraffic={isAdTraffic} />
-            </div>
-          </aside>
-        )}
+        {/* Left Sticky Sidebar (slot: side) */}
+        <aside className="hidden xl:block w-[300px] flex-shrink-0 self-stretch">
+          <div className="sticky top-4 z-10">
+            <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+          </div>
+        </aside>
 
         {/* Center Container matching .theme-container (max-width: 680px) */}
         <div className="w-full max-w-[680px] bg-white rounded-xl shadow-md p-4 sm:p-6">
@@ -156,9 +154,9 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
             <Navbar settings={settings} isAdTraffic={isAdTraffic} />
           </header>
 
-          {/* AdX Home Top */}
+          {/* AdX Header Top (slot: header) */}
           <div id="adx-home-top-wrapper" className="mb-3">
-            <AdUnit config={ads.homeTop} isAdTraffic={isAdTraffic} className="!my-0" />
+            <AdUnit slotKey="header" isAdTraffic={isAdTraffic} className="!my-0" />
           </div>
 
           {/* Article Title */}
@@ -204,10 +202,10 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
               </button>
             )}
 
-              {/* Mid Ad & Expanded Content (When Read More is clicked) */}
-            {!isTruncated && ads.homeMore?.enabled && (
+            {/* Mid Ad (slot: feed) when Read More is clicked */}
+            {!isTruncated && (
               <div className="my-5">
-                <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
+                <AdUnit slotKey="feed" isAdTraffic={isAdTraffic} />
               </div>
             )}
           </div>
@@ -273,10 +271,10 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                 })}
               </div>
 
-              {/* POIN 1: Mid Ad (homeMore) automatically appears between Featured Videos & Featured Games when user scrolls without clicking Read More */}
-              {isTruncated && ads.homeMore?.enabled && (
+              {/* Mid Ad (slot: feed) automatically appears between Featured Videos & Featured Games when user scrolls without clicking Read More */}
+              {isTruncated && (
                 <div className="pt-2 border-t border-gray-100">
-                  <AdUnit config={ads.homeMore} isAdTraffic={isAdTraffic} />
+                  <AdUnit slotKey="feed" isAdTraffic={isAdTraffic} />
                 </div>
               )}
 
@@ -335,31 +333,27 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                 </div>
               )}
 
-              {/* POIN 1: Bottom Content Ad (inArticle) unlocked on scroll even if Read More wasn't clicked */}
-              {ads.inArticle?.enabled && (
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <AdUnit config={ads.inArticle} isAdTraffic={isAdTraffic} />
-                </div>
-              )}
+              {/* Bottom Content Ad (slot: side on mobile/tablet where left sidebar is hidden) */}
+              <div className="xl:hidden mt-6 pt-4 border-t border-gray-100">
+                <AdUnit slotKey="side" isAdTraffic={isAdTraffic} />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Right Sticky Sidebar (AdX Right) */}
-        {ads.sidebarRight.enabled && (
-          <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
-            <div className="sticky top-4 z-10">
-              <AdUnit config={ads.sidebarRight} isAdTraffic={isAdTraffic} />
-            </div>
-          </aside>
-        )}
+        {/* Right Sticky Sidebar (slot: side2) */}
+        <aside className="hidden lg:block w-[300px] flex-shrink-0 self-stretch">
+          <div className="sticky top-4 z-10">
+            <AdUnit slotKey="side2" isAdTraffic={isAdTraffic} />
+          </div>
+        </aside>
       </div>
 
-      {/* Unit #4: Mobile Sticky Bottom Anchor Ad (Ala AdSense) */}
-      <MobileBottomAnchorAd config={ads.bottomAnchor} isAdTraffic={isAdTraffic} />
+      {/* Sticky Bottom Anchor Ad (slot: anchor from pricing_config.json) */}
+      <MobileBottomAnchorAd isAdTraffic={isAdTraffic} />
 
-      {/* Unit #5: Full-Page Interstitial / Vignette Ad */}
-      <InterstitialAdUnit config={ads.interstitial} />
+      {/* Full-Page Interstitial / Vignette Ad (slot: interstitial from pricing_config.json) */}
+      <InterstitialAdUnit />
     </div>
   );
 };

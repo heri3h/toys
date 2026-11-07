@@ -1,7 +1,6 @@
 import React from 'react';
 import { headers } from 'next/headers';
 import { connection } from 'next/server';
-import { getSiteData } from '@/lib/storage';
 import { getAutoPricingPayload } from '@/lib/autopricing';
 
 export async function AdsHeader() {
@@ -14,26 +13,21 @@ export async function AdsHeader() {
     'ID'
   ).toUpperCase();
 
-  const siteData = getSiteData();
-  const { cfgJson, cpJson, fallbackBnr, fallbackInt, fallbackAnc } = getAutoPricingPayload();
+  const { cfgJson, cpJson, adUnits, fallbackBnr, fallbackInt, fallbackAnc } = getAutoPricingPayload();
 
-  const defaultAwId = siteData.settings.googleAdsId || 'AW-16785269892';
-  const defaultSendTo =
-    siteData.settings.googleAdsId && siteData.settings.googleAdsConversionLabel
-      ? `${siteData.settings.googleAdsId}/${siteData.settings.googleAdsConversionLabel}`
-      : 'AW-16785269892/nNVJCMe5mowaEITJ68M-';
-
+  const defaultSendTo = 'AW-16785269892/nNVJCMe5mowaEITJ68M-';
   const cfgSendTo =
     cfgJson?.conversion?.send_to && String(cfgJson.conversion.send_to).trim()
       ? String(cfgJson.conversion.send_to).trim()
       : defaultSendTo;
 
-  const conversionAw = cfgSendTo.split('/')[0]?.trim() || defaultAwId;
+  const conversionAw = cfgSendTo.split('/')[0]?.trim() || 'AW-16785269892';
 
   const inlineScript = `
 window.MBELIK_COUNTRY = ${JSON.stringify(detectedCountry)};
 window.MBELIK_INLINE_CURRENT_PRICING = ${JSON.stringify(cpJson)};
 window.MBELIK_INLINE_PRICING_CONFIG = ${JSON.stringify(cfgJson)};
+window.MBELIK_AD_UNITS = ${JSON.stringify(adUnits)};
 window.MBELIK_FALLBACK_BNR = ${JSON.stringify(fallbackBnr)};
 window.MBELIK_FALLBACK_INT = ${JSON.stringify(fallbackInt)};
 window.MBELIK_FALLBACK_ANC = ${JSON.stringify(fallbackAnc)};
@@ -186,6 +180,19 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
 
   window.mbelikKeys = keys;
   window.mbelikPricingVal = keys.keyBnr;
+  window.mbelikResolveSlotKey = function(slotPath, fmtName) {
+    var baseKey = (fmtName === 'int') ? keys.keyInt : (fmtName === 'anc' ? keys.keyAnc : keys.keyBnr);
+    var inlineData = window.MBELIK_INLINE_CURRENT_PRICING;
+    if (inlineData && inlineData.overrides && inlineData.overrides[userCountry] && slotPath) {
+      var cOv = inlineData.overrides[userCountry];
+      var shortName = String(slotPath).replace(/^\\/[^/]+\\//, '');
+      var uOv = cOv[slotPath] || cOv[shortName];
+      if (uOv && uOv[userDevice] && uOv[userDevice].key) {
+        return uOv[userDevice].key;
+      }
+    }
+    return baseKey;
+  };
   window.mbelikAccumulator = window.mbelikAccumulator || {
     sessionTotal: parseFloat(sessionStorage.getItem('mbelik_session_total') || '0') || 0
   };
@@ -229,7 +236,7 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
       if (currentRule && currentRule.cpm) {
         estimatedECPM = currentRule.cpm;
       } else if (pricingKey === 'google_optimize') {
-        var fmtKey = (path.indexOf('int') !== -1) ? 'int' : ((path.indexOf('anc') !== -1 || path.indexOf('sticky') !== -1) ? 'anc' : 'bnr');
+        var fmtKey = (path.indexOf('int') !== -1 || path.indexOf('-5') !== -1) ? 'int' : ((path.indexOf('anc') !== -1 || path.indexOf('sticky') !== -1 || path.indexOf('-6') !== -1) ? 'anc' : 'bnr');
         var cpData = window.MBELIK_INLINE_CURRENT_PRICING || null;
         if (cpData && cpData.summary && cpData.summary[fmtKey] && cpData.summary[fmtKey].ecpm) {
           estimatedECPM = parseFloat(cpData.summary[fmtKey].ecpm) || 0.0;
@@ -338,7 +345,6 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
             window.gtag = gtag;
             gtag('js', new Date());
             gtag('config', ${JSON.stringify(conversionAw)});
-            ${siteData.settings.gaMeasurementId ? `gtag('config', ${JSON.stringify(siteData.settings.gaMeasurementId)});` : ''}
           `,
         }}
       />
