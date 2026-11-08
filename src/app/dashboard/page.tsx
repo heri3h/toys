@@ -174,6 +174,18 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // Ensure /dashboard is 100% free of any lingering GAM / GPT slots or out-of-page containers
+    try {
+      if (typeof window !== 'undefined' && (window as any).googletag?.destroySlots) {
+        (window as any).googletag.destroySlots();
+      }
+      document
+        .querySelectorAll(
+          'ins[id^="gpt_unit_"], div[id^="gpt_unit_"], div[id^="google_ads_iframe_"], iframe[id^="google_ads_iframe_"]'
+        )
+        .forEach((el) => el.remove());
+    } catch {}
+
     const savedAuth = sessionStorage.getItem('toys_admin_auth');
     if (savedAuth === 'true') {
       setIsAuthenticated(true);

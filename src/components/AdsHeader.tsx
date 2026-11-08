@@ -34,7 +34,17 @@ window.MBELIK_FALLBACK_ANC = ${JSON.stringify(fallbackAnc)};
 window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
 
 (function() {
+  if (typeof window !== 'undefined' && window.location && window.location.pathname.indexOf('/dashboard') === 0) {
+    return;
+  }
   window.googletag = window.googletag || { cmd: [] };
+  if (!document.querySelector('script[src*="gpt.js"]')) {
+    var gptScript = document.createElement('script');
+    gptScript.async = true;
+    gptScript.setAttribute('data-cfasync', 'false');
+    gptScript.src = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
+    document.head.appendChild(gptScript);
+  }
   var phpFallbackBnr = window.MBELIK_FALLBACK_BNR || "f10000";
   var phpFallbackInt = window.MBELIK_FALLBACK_INT || "f35000";
   var phpFallbackAnc = window.MBELIK_FALLBACK_ANC || "f15000";
@@ -351,11 +361,6 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
             gtag('config', ${JSON.stringify(conversionAw)});
           `,
         }}
-      />
-      <script
-        data-cfasync="false"
-        async
-        src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"
       />
       <script
         data-cfasync="false"

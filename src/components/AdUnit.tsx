@@ -37,6 +37,7 @@ declare global {
       pubads: () => any;
       enableServices: () => void;
       display: (id: string | any) => void;
+      destroySlots?: (slots?: any[]) => boolean;
     };
   }
 }
@@ -72,9 +73,19 @@ const SLOT_DEFAULT_SIZES: Record<MbelikSlotKey, number[][]> = {
   ],
 };
 
+function isDashboardRoute(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    Boolean(window.location?.pathname?.startsWith('/dashboard'))
+  );
+}
+
 function ensureGptLoaded() {
-  if (typeof window !== 'undefined' && !window.googletag) {
+  if (typeof window === 'undefined' || isDashboardRoute()) return;
+  if (!window.googletag) {
     window.googletag = { cmd: [] } as any;
+  }
+  if (!document.querySelector('script[src*="gpt.js"]')) {
     const script = document.createElement('script');
     script.async = true;
     script.src = 'https://securepubads.g.doubleclick.net/tag/js/gpt.js';
@@ -131,7 +142,10 @@ export const AdUnit: React.FC<AdUnitProps> = ({
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isDashboardRoute()) {
+      setShouldRender(false);
+      return;
+    }
     const viewportW = window.innerWidth;
     const isDesktop = viewportW >= 1024;
 
@@ -147,14 +161,14 @@ export const AdUnit: React.FC<AdUnitProps> = ({
   }, [placement]);
 
   useEffect(() => {
-    if (!shouldRender || definedRef.current) return;
+    if (!shouldRender || definedRef.current || isDashboardRoute()) return;
 
     ensureGptLoaded();
 
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
-          if (definedRef.current) return;
+          if (definedRef.current || isDashboardRoute()) return;
           // Double guard: never request ad if container is hidden via CSS (display: none)
           if (adRef.current && adRef.current.offsetParent === null) {
             return;
@@ -229,20 +243,23 @@ export const MobileBottomAnchorAd: React.FC<{
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (initializedRef.current) return;
+    if (initializedRef.current || isDashboardRoute()) return;
     initializedRef.current = true;
 
     ensureGptLoaded();
 
+    let createdSlot: any = null;
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
+          if (isDashboardRoute()) return;
           const slotPath =
             window.MBELIK_AD_UNITS?.anchor || DEFAULT_AD_UNITS.anchor;
           const format = window.googletag.enums?.OutOfPageFormat?.BOTTOM_ANCHOR;
           if (format && window.googletag.defineOutOfPageSlot) {
             const stickySlot = window.googletag.defineOutOfPageSlot(slotPath, format);
             if (stickySlot) {
+              createdSlot = stickySlot;
               const keyAnc =
                 window.mbelikResolveSlotKey?.(slotPath, 'anc') ||
                 window.mbelikKeys?.keyAnc ||
@@ -263,6 +280,14 @@ export const MobileBottomAnchorAd: React.FC<{
         }
       });
     }
+
+    return () => {
+      if (createdSlot && window.googletag?.destroySlots) {
+        try {
+          window.googletag.destroySlots([createdSlot]);
+        } catch {}
+      }
+    };
   }, []);
 
   return null;
@@ -276,20 +301,23 @@ export const InterstitialAdUnit: React.FC = () => {
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (initializedRef.current) return;
+    if (initializedRef.current || isDashboardRoute()) return;
     initializedRef.current = true;
 
     ensureGptLoaded();
 
+    let createdSlot: any = null;
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
+          if (isDashboardRoute()) return;
           const slotPath =
             window.MBELIK_AD_UNITS?.interstitial || DEFAULT_AD_UNITS.interstitial;
           const format = window.googletag.enums?.OutOfPageFormat?.INTERSTITIAL;
           if (format && window.googletag.defineOutOfPageSlot) {
             const interstitialSlot = window.googletag.defineOutOfPageSlot(slotPath, format);
             if (interstitialSlot) {
+              createdSlot = interstitialSlot;
               const keyInt =
                 window.mbelikResolveSlotKey?.(slotPath, 'int') ||
                 window.mbelikKeys?.keyInt ||
@@ -310,6 +338,14 @@ export const InterstitialAdUnit: React.FC = () => {
         }
       });
     }
+
+    return () => {
+      if (createdSlot && window.googletag?.destroySlots) {
+        try {
+          window.googletag.destroySlots([createdSlot]);
+        } catch {}
+      }
+    };
   }, []);
 
   return null;
