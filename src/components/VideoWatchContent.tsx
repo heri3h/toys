@@ -506,8 +506,6 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
                           'See these awesome toy cars in action with high-speed stunts and imaginative playsets.'}
                       </p>
                       <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-2">
-                        <span>{vid.views || '35.1K views'}</span>
-                        <span>•</span>
                         <span className="text-red-600 font-semibold">▶ Click to Watch</span>
                       </div>
                     </div>
@@ -569,9 +567,6 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
                     </div>
                     <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
                       <p className="text-white text-xs font-bold truncate">{game.title}</p>
-                      <p className="text-emerald-300 text-[10px] font-medium truncate">
-                        {game.category || 'Racing'} • {game.plays || '45K plays'}
-                      </p>
                     </div>
                   </a>
                 ))}

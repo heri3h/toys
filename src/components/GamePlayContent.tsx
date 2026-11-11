@@ -225,9 +225,6 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
                     </div>
                     <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
                       <p className="text-white text-xs font-bold truncate">{game.title}</p>
-                      <p className="text-emerald-300 text-[10px] font-medium truncate">
-                        {game.category || 'Racing'} • {game.plays || '45K plays'}
-                      </p>
                     </div>
                   </a>
                 ))}

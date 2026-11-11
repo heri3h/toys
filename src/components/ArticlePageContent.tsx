@@ -252,14 +252,11 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                           <Play className="w-5 h-5 fill-current ml-0.5" />
                         </div>
                       </div>
-                      {/* Title + Duration & Views Overlay */}
+                      {/* Title + Duration Overlay */}
                       <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-white text-xs sm:text-sm font-semibold truncate">
                             {item.title}
-                          </p>
-                          <p className="text-gray-300 text-[11px] mt-0.5">
-                            {item.views || '38.4K views'} • Toy Action Clip
                           </p>
                         </div>
                         <span className="px-1.5 py-0.5 rounded bg-black/80 text-white text-[11px] font-mono font-semibold shrink-0">
@@ -322,9 +319,6 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                           {/* Bottom Title Overlay */}
                           <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
                             <p className="text-white text-xs font-bold truncate">{game.title}</p>
-                            <p className="text-emerald-300 text-[10px] font-medium truncate">
-                              {game.category || 'Racing'} • {game.plays || '45K plays'}
-                            </p>
                           </div>
                         </a>
                       );
