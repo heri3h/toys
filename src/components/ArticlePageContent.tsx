@@ -26,7 +26,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
   const isAdTraffic = Boolean(gclid) || isAdTrafficInitial;
 
   const [overlayActive, setOverlayActive] = useState<boolean>(false);
-  const [isTruncated, setIsTruncated] = useState<boolean>(true); // Truncated by default
+  const [isTruncated, setIsTruncated] = useState<boolean>(isAdTraffic); // Truncated only for Ad traffic (with gclid)
   const [hasScrolled, setHasScrolled] = useState<boolean>(false); // Bottom section loads only when scrolled
 
   const { settings, ads, articles, featuredItems, games } = initialData;
@@ -43,9 +43,9 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
     };
 
   useEffect(() => {
-    setIsTruncated(true);
+    setIsTruncated(isAdTraffic);
     setHasScrolled(false);
-  }, [targetSlug]);
+  }, [targetSlug, isAdTraffic]);
 
   useEffect(() => {
     if (hasScrolled) return;
@@ -159,7 +159,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
         </aside>
 
         {/* Center Container matching .theme-container (max-width: 680px) */}
-        <div className="w-full max-w-[680px] bg-white rounded-xl shadow-md p-4 sm:p-6">
+        <div className="w-full max-w-[680px] bg-white rounded-xl shadow-md p-4 sm:p-6 min-h-[calc(100dvh-2rem)] flex flex-col">
           
           {/* Header with Site Name and Dashboard link */}
           <header className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
@@ -189,35 +189,37 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
           </div>
 
           {/* Description Container with Read More Button */}
-          <div className="theme-description-wrapper relative">
-            <div
-              className={`prose prose-neutral max-w-none text-sm text-[#4a4a4a] leading-relaxed transition-all duration-300 relative ${
-                isTruncated ? 'max-h-[110px] overflow-hidden' : ''
-              }`}
-            >
-              <div dangerouslySetInnerHTML={{ __html: currentArticle.content }} />
+          <div className="theme-description-wrapper relative flex-1 flex flex-col justify-between">
+            <div>
+              <div
+                className={`prose prose-neutral max-w-none text-sm text-[#4a4a4a] leading-relaxed transition-all duration-300 relative ${
+                  isTruncated ? 'max-h-[260px] sm:max-h-[320px] overflow-hidden' : ''
+                }`}
+              >
+                <div dangerouslySetInnerHTML={{ __html: currentArticle.content }} />
 
-              {/* Gradient Mask when truncated */}
+                {/* Gradient Mask when truncated */}
+                {isTruncated && (
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
+                )}
+              </div>
+
+              {/* The "Read more..." Button - Visible ONLY on Ad traffic (with gclid) */}
               {isTruncated && (
-                <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
+                <button
+                  onClick={() => {
+                    setIsTruncated(false);
+                    setHasScrolled(true);
+                  }}
+                  className="w-full mt-3 py-3 text-center text-[#3b9cc1] hover:text-[#0096C7] font-semibold text-base transition-colors flex items-center justify-center gap-1.5 border border-dashed border-cyan-200 rounded-md hover:bg-cyan-50/50 cursor-pointer shadow-xs"
+                >
+                  <span>Read more...</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
               )}
             </div>
 
-            {/* The "Read more..." Button - Visible immediately above the fold */}
-            {isTruncated && (
-              <button
-                onClick={() => {
-                  setIsTruncated(false);
-                  setHasScrolled(true);
-                }}
-                className="w-full mt-2 py-2.5 text-center text-[#3b9cc1] hover:text-[#0096C7] font-semibold text-base transition-colors flex items-center justify-center gap-1.5 border border-dashed border-cyan-200 rounded-md hover:bg-cyan-50/50"
-              >
-                <span>Read more...</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            )}
-
-            {/* Mid Ad (slot: feed) when Read More is clicked */}
+            {/* Mid Ad (slot: feed) when Read More is clicked or full content is shown */}
             {!isTruncated && (
               <div className="my-5">
                 <AdUnit slotKey="feed" isAdTraffic={isAdTraffic} />

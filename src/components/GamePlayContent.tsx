@@ -271,16 +271,26 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
             </div>
           </div>
 
-          {!hasScrolled ? (
-            <button
-              type="button"
-              onClick={() => setHasScrolled(true)}
-              className="w-full py-2.5 text-center text-emerald-600 hover:text-emerald-700 font-semibold text-sm transition-colors flex items-center justify-center gap-1.5 border border-dashed border-emerald-200 rounded-lg hover:bg-emerald-50/40"
-            >
-              <span>Scroll for More Games &amp; Videos</span>
-              <ChevronDown className="w-4 h-4 animate-bounce" />
-            </button>
-          ) : (
+          {/* Game Description & Instructions (100% Google AdX Content Policy Safe) */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3 text-sm text-gray-700 leading-relaxed">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
+              <Info className="w-4 h-4 text-emerald-600" />
+              <span>About {activeGame.title} &amp; How to Play</span>
+            </div>
+            <p>
+              {activeGame.description ||
+                'Jump behind the wheel in this fast-paced racing and stunt adventure! Test your driving reflexes, dodge obstacles, and unlock cool new vehicles right in your browser.'}
+            </p>
+            {activeGame.instructions && (
+              <div className="pt-2 border-t border-gray-200/70">
+                <p className="text-xs font-bold text-gray-600 mb-1">Controls / Instructions:</p>
+                <p className="text-xs text-gray-600">{activeGame.instructions}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Below-the-fold content loads when scrolled */}
+          {hasScrolled && (
             <div className="space-y-6 animate-fadeIn">
               {/* Mid-Page Ad Slot (slot: feed) directly above More Games grid */}
               <div className="py-1">
@@ -295,24 +305,6 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
                   title="More Games You'll Love"
                   badgeText="Instant Play"
                 />
-              </div>
-
-              {/* Game Description & Instructions (100% Google AdX Content Policy Safe) */}
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3 text-sm text-gray-700 leading-relaxed">
-                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
-                  <Info className="w-4 h-4 text-emerald-600" />
-                  <span>About {activeGame.title} &amp; How to Play</span>
-                </div>
-                <p>
-                  {activeGame.description ||
-                    'Jump behind the wheel in this fast-paced racing and stunt adventure! Test your driving reflexes, dodge obstacles, and unlock cool new vehicles right in your browser.'}
-                </p>
-                {activeGame.instructions && (
-                  <div className="pt-2 border-t border-gray-200/70">
-                    <p className="text-xs font-bold text-gray-600 mb-1">Controls / Instructions:</p>
-                    <p className="text-xs text-gray-600">{activeGame.instructions}</p>
-                  </div>
-                )}
               </div>
 
               {/* SECTION 2: FEATURED VIDEOS (2x2 Grid = 2 Rows, 4 Random Videos) */}
