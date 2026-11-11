@@ -26,6 +26,7 @@ import {
   Sparkles,
   Shuffle,
   KeyRound,
+  Download,
 } from 'lucide-react';
 import { compressImageToWebP } from '@/lib/imageCompressor';
 
@@ -215,6 +216,21 @@ export default function DashboardPage() {
     } finally {
       setYtSearching(false);
     }
+  };
+
+  const downloadYouTubeThumbnail = (videoIdOrUrl: string, title?: string) => {
+    if (!videoIdOrUrl) return;
+    const params = new URLSearchParams();
+    params.set('videoId', videoIdOrUrl);
+    if (title) params.set('title', title);
+    const downloadUrl = `/api/youtube/download?${params.toString()}`;
+
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', `${(title || 'youtube-thumbnail').replace(/[^a-zA-Z0-9_-]/g, '_')}.jpg`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -1888,6 +1904,19 @@ export default function DashboardPage() {
                                       ▶ Preview
                                     </span>
                                   </button>
+                                  {/* Download Thumbnail Badge Button */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      downloadYouTubeThumbnail(vid.videoId, vid.title);
+                                    }}
+                                    title="Download Thumbnail YouTube HD (1280x720 / 640x480)"
+                                    className="absolute bottom-2 left-2 z-10 px-2 py-0.5 rounded bg-black/80 hover:bg-sky-600 text-white text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow"
+                                  >
+                                    <Download className="w-2.5 h-2.5 text-sky-300" />
+                                    <span>Unduh Thumbs</span>
+                                  </button>
                                   {/* Duration Badge */}
                                   <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/85 text-white text-[10px] font-mono font-semibold">
                                     {vid.duration}
@@ -1942,12 +1971,22 @@ export default function DashboardPage() {
                               onClick={() => generateArticleFromSearchItem(vid)}
                               disabled={generatingFromYtId !== null || addingYtVideoId !== null}
                               title="Buat Artikel + Masukkan ke Featured Videos"
-                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold transition-colors cursor-pointer shrink-0"
+                              className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold transition-colors cursor-pointer shrink-0"
                             >
                               <Sparkles
                                 className={`w-3 h-3 ${isGeneratingThis ? 'animate-spin' : ''}`}
                               />
                               <span>{isGeneratingThis ? 'Membuat...' : '+ Artikel'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => downloadYouTubeThumbnail(vid.videoId, vid.title)}
+                              title="Unduh Thumbnail YouTube HD"
+                              className="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 text-[11px] font-bold transition-colors cursor-pointer shrink-0"
+                            >
+                              <Download className="w-3 h-3 text-sky-400" />
+                              <span>Unduh Thumbs</span>
                             </button>
                           </div>
                         </div>
@@ -1963,40 +2002,65 @@ export default function DashboardPage() {
                     key={item.id || idx}
                     className="border border-slate-800 bg-slate-950/60 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start"
                   >
-                    <label className="group relative w-full md:w-48 aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-700 shrink-0 cursor-pointer">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:opacity-60 transition-opacity"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
-                          No Image
-                        </div>
-                      )}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-blue-600 px-2.5 py-1 rounded shadow">
-                          <Upload className="w-3 h-3" />
-                          <span>
-                            {uploadingThumb === `feat_${idx}`
-                              ? 'Mengompres...'
-                              : 'Ganti Thumbnail'}
+                    <div className="flex flex-col items-center shrink-0 w-full md:w-48">
+                      <label className="group relative w-full aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-700 cursor-pointer">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:opacity-60 transition-opacity"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
+                            No Image
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-white bg-blue-600 px-2.5 py-1 rounded shadow">
+                            <Upload className="w-3 h-3" />
+                            <span>
+                              {uploadingThumb === `feat_${idx}`
+                                ? 'Mengompres...'
+                                : 'Ganti Thumbnail'}
+                            </span>
                           </span>
-                        </span>
-                      </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const url = await uploadImageFile(file, `feat_${idx}`, 480);
-                          if (url) updateFeaturedItem(idx, 'image', url);
-                        }}
-                      />
-                    </label>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const url = await uploadImageFile(file, `feat_${idx}`, 480);
+                            if (url) updateFeaturedItem(idx, 'image', url);
+                          }}
+                        />
+                      </label>
+                      {item.image && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (item.videoUrl && (item.videoUrl.includes('youtube') || item.videoUrl.includes('youtu.be'))) {
+                              downloadYouTubeThumbnail(item.videoUrl, item.title);
+                            } else {
+                              const link = document.createElement('a');
+                              link.href = item.image;
+                              link.download = `${(item.title || 'thumbnail').replace(/[^a-zA-Z0-9_-]/g, '_')}.webp`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }
+                          }}
+                          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+                          title="Unduh file thumbnail"
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>Unduh Thumbnail</span>
+                        </button>
+                      )}
+                    </div>
 
                     <div className="flex-1 w-full space-y-3 text-xs">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2012,6 +2076,26 @@ export default function DashboardPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (item.videoUrl && (item.videoUrl.includes('youtu.be') || item.videoUrl.includes('youtube.com'))) {
+                                downloadYouTubeThumbnail(item.videoUrl, item.title);
+                              } else if (item.image) {
+                                const link = document.createElement('a');
+                                link.href = item.image;
+                                link.download = `${(item.title || 'thumbnail').replace(/[^a-zA-Z0-9_-]/g, '_')}.webp`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }
+                            }}
+                            title="Unduh file thumbnail resolusi tinggi"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 text-[11px] font-semibold cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Unduh Thumbnail</span>
+                          </button>
                           <Link
                             href={`/watch/${item.id || `feat_${idx + 1}`}`}
                             target="_blank"
