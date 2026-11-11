@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiteData, GameItem } from '@/types';
 import { AdUnit, MobileBottomAnchorAd, InterstitialAdUnit } from './AdUnit';
@@ -35,6 +35,17 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(2180);
   const gameContainerRef = useRef<HTMLDivElement>(null);
+  const [randomFeaturedVideos, setRandomFeaturedVideos] = useState(() =>
+    (featuredItems || []).slice(0, 4)
+  );
+
+  useEffect(() => {
+    if (featuredItems && featuredItems.length > 0) {
+      setRandomFeaturedVideos(
+        [...featuredItems].sort(() => Math.random() - 0.5).slice(0, 4)
+      );
+    }
+  }, [featuredItems, currentGame.id]);
 
   const handleFullscreen = () => {
     const el = gameContainerRef.current;
@@ -250,8 +261,8 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
             )}
           </div>
 
-          {/* SECTION 2: FEATURED VIDEOS (Rectangular 16:9 List) */}
-          {featuredItems && featuredItems.length > 0 && (
+          {/* SECTION 2: FEATURED VIDEOS (2x2 Grid = 2 Rows, 4 Random Videos) */}
+          {randomFeaturedVideos.length > 0 && (
             <div className="pt-4 border-t border-gray-100 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -261,37 +272,37 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
                 <span className="text-xs text-gray-400">HD Clips</span>
               </div>
 
-              <div className="space-y-3">
-                {featuredItems.map((vid, idx) => (
+              <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
+                {randomFeaturedVideos.map((vid, idx) => (
                   <a
                     key={vid.id || idx}
                     href={`/watch/${vid.id || `feat_${idx + 1}`}`}
-                    className="group flex flex-col sm:flex-row gap-3 p-2.5 rounded-xl border border-gray-200 hover:border-red-300 transition-all"
+                    className="block group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
                   >
-                    <div className="relative w-full sm:w-48 aspect-video rounded-lg overflow-hidden bg-neutral-900 shrink-0">
-                      <img
-                        src={vid.image}
-                        alt={vid.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-10 h-7 rounded-lg bg-red-600/90 flex items-center justify-center text-white shadow">
-                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                        </div>
+                    <img
+                      src={vid.image}
+                      alt={vid.title}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                    />
+                    <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-red-600/90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow">
+                      ▶ Video
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-10 h-8 sm:w-12 sm:h-9 rounded-xl bg-red-600/95 group-hover:bg-red-600 group-hover:scale-110 transition-all flex items-center justify-center text-white shadow-xl">
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
                       </div>
-                      <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono font-semibold">
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 p-2 sm:p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-end justify-between gap-1.5">
+                      <div className="min-w-0">
+                        <p className="text-white text-[11px] sm:text-xs font-semibold truncate">
+                          {vid.title}
+                        </p>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono font-semibold shrink-0">
                         {vid.duration || '01:45'}
                       </span>
-                    </div>
-                    <div className="flex-1 flex flex-col justify-center min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-2">
-                        {vid.title}
-                      </h4>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                        {vid.description || 'Watch these awesome toy cars in high-speed action!'}
-                      </p>
                     </div>
                   </a>
                 ))}

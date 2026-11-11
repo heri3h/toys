@@ -105,8 +105,8 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
     }
   }, [isAdTraffic, settings.truncateOnAdTrafficOnly]);
 
-  // Thumbnails from dashboard config or defaults
-  const relatedThumbnails =
+  // Thumbnails from dashboard config or defaults (randomly shuffled, max 4 items in 2x2 grid)
+  const baseThumbnails =
     featuredItems && featuredItems.length > 0
       ? featuredItems
       : [
@@ -128,7 +128,24 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
             image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
             targetUrl: '/watch/feat_3',
           },
+          {
+            id: 'feat_4',
+            title: 'High-Speed RC Monster Truck Stunts',
+            image: 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?auto=format&fit=crop&w=600&q=80',
+            targetUrl: '/watch/feat_4',
+          },
         ];
+
+  const [relatedThumbnails, setRelatedThumbnails] = useState(() =>
+    baseThumbnails.slice(0, 4)
+  );
+
+  useEffect(() => {
+    const shuffled = [...baseThumbnails]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 4);
+    setRelatedThumbnails(shuffled);
+  }, [featuredItems]);
 
   return (
     <div className="min-h-[102vh] bg-[#f0f0f0] font-sans text-[#1a1a1a]">
@@ -213,8 +230,8 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
           {/* Bottom Section (Featured Videos & Featured Games) - Only loaded after user scrolls */}
           {hasScrolled && (
             <div className="transition-opacity duration-500 ease-in opacity-100 space-y-6">
-              {/* SECTION 1: FEATURED VIDEOS (Rectangular 16:9 Thumbnails) */}
-              <div className="mt-6 space-y-4 pt-4 border-t border-gray-100">
+              {/* SECTION 1: FEATURED VIDEOS (2x2 Grid = 2 Rows, 4 Random Videos) */}
+              <div className="mt-6 space-y-3 pt-4 border-t border-gray-100">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
                     <Play className="w-4 h-4 text-red-600 fill-current" />
@@ -223,49 +240,51 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
                   <span className="text-[11px] text-gray-400 font-medium">HD Clips</span>
                 </div>
 
-                {relatedThumbnails.map((item, idx) => {
-                  const defaultWatchPath = `/watch/${item.id || `feat_${idx + 1}`}`;
-                  const cleanedTarget = item.targetUrl ? item.targetUrl.split('?')[0] : '';
-                  const href =
-                    !cleanedTarget || cleanedTarget === '/' ? defaultWatchPath : cleanedTarget;
+                <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
+                  {relatedThumbnails.map((item, idx) => {
+                    const defaultWatchPath = `/watch/${item.id || `feat_${idx + 1}`}`;
+                    const cleanedTarget = item.targetUrl ? item.targetUrl.split('?')[0] : '';
+                    const href =
+                      !cleanedTarget || cleanedTarget === '/' ? defaultWatchPath : cleanedTarget;
 
-                  return (
-                    <a
-                      key={item.id || idx}
-                      href={href}
-                      className="block group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
-                    >
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      {/* Top-left "WATCH VIDEO" Badge */}
-                      <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider shadow">
-                        ▶ Watch Video
-                      </div>
-                      {/* Play Button Icon */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-15 h-11 rounded-xl bg-red-600/95 group-hover:bg-red-600 group-hover:scale-110 transition-all flex items-center justify-center text-white shadow-xl">
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                    return (
+                      <a
+                        key={item.id || idx}
+                        href={href}
+                        className="block group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        {/* Top-left "WATCH" Badge */}
+                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-red-600/90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow">
+                          ▶ Video
                         </div>
-                      </div>
-                      {/* Title + Duration Overlay */}
-                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex items-end justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-white text-xs sm:text-sm font-semibold truncate">
-                            {item.title}
-                          </p>
+                        {/* Play Button Icon */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-8 sm:w-12 sm:h-9 rounded-xl bg-red-600/95 group-hover:bg-red-600 group-hover:scale-110 transition-all flex items-center justify-center text-white shadow-xl">
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          </div>
                         </div>
-                        <span className="px-1.5 py-0.5 rounded bg-black/80 text-white text-[11px] font-mono font-semibold shrink-0">
-                          {item.duration || '01:45'}
-                        </span>
-                      </div>
-                    </a>
-                  );
-                })}
+                        {/* Title + Duration Overlay */}
+                        <div className="absolute inset-x-0 bottom-0 p-2 sm:p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-end justify-between gap-1.5">
+                          <div className="min-w-0">
+                            <p className="text-white text-[11px] sm:text-xs font-semibold truncate">
+                              {item.title}
+                            </p>
+                          </div>
+                          <span className="px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono font-semibold shrink-0">
+                            {item.duration || '01:45'}
+                          </span>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Mid Ad (slot: feed) automatically appears between Featured Videos & Featured Games when user scrolls without clicking Read More */}
