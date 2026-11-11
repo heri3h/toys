@@ -12,6 +12,7 @@ import {
   ThumbsUp,
   Sparkles,
   Info,
+  ChevronDown,
 } from 'lucide-react';
 
 interface GamePlayContentProps {
@@ -55,6 +56,7 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(2180);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const [randomFeaturedVideos, setRandomFeaturedVideos] = useState(() =>
     (featuredItems || []).slice(0, 4)
@@ -62,12 +64,58 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
 
   useEffect(() => {
     setIsGameStarted(false);
+    setHasScrolled(false);
     if (featuredItems && featuredItems.length > 0) {
       setRandomFeaturedVideos(
         [...featuredItems].sort(() => Math.random() - 0.5).slice(0, 4)
       );
     }
   }, [featuredItems, activeGame.id]);
+
+  // Trigger below-the-fold content only after user scrolls
+  useEffect(() => {
+    if (hasScrolled) return;
+
+    const onScroll = () => {
+      if (window.scrollY > 5) {
+        setHasScrolled(true);
+      }
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) {
+        setHasScrolled(true);
+      }
+    };
+
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const currentY = e.touches[0].clientY;
+      if (touchStartY - currentY > 5) {
+        setHasScrolled(true);
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+
+    if (window.scrollY > 5) {
+      setHasScrolled(true);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [hasScrolled]);
 
   const handleFullscreen = () => {
     const el = gameContainerRef.current;
@@ -80,7 +128,7 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] text-[#111827] font-sans">
+    <div className="min-h-[102vh] bg-[#f3f4f6] text-[#111827] font-sans">
       {/* Top Sticky Brand Bar */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
@@ -223,92 +271,105 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
             </div>
           </div>
 
-          {/* Mid-Page Ad Slot (slot: feed) directly above More Games grid */}
-          <div className="py-1">
-            <AdUnit slotKey="feed" isAdTraffic={isAdTraffic} />
-          </div>
-
-          {/* SECTION 1: MORE GAMES TO PLAY (4-Column Square 1:1 Grid, 8 Initial Items + Infinite Scroll) */}
-          <div className="pt-1">
-            <FeaturedGamesGrid
-              games={siteData.games && siteData.games.length > 0 ? siteData.games : otherGames}
-              excludeGameId={activeGame.id}
-              title="More Games You'll Love"
-              badgeText="Instant Play"
-            />
-          </div>
-
-          {/* Game Description & Instructions (100% Google AdX Content Policy Safe) */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3 text-sm text-gray-700 leading-relaxed">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
-              <Info className="w-4 h-4 text-emerald-600" />
-              <span>About {activeGame.title} &amp; How to Play</span>
-            </div>
-            <p>
-              {activeGame.description ||
-                'Jump behind the wheel in this fast-paced racing and stunt adventure! Test your driving reflexes, dodge obstacles, and unlock cool new vehicles right in your browser.'}
-            </p>
-            {activeGame.instructions && (
-              <div className="pt-2 border-t border-gray-200/70">
-                <p className="text-xs font-bold text-gray-600 mb-1">Controls / Instructions:</p>
-                <p className="text-xs text-gray-600">{activeGame.instructions}</p>
-              </div>
-            )}
-          </div>
-
-          {/* SECTION 2: FEATURED VIDEOS (2x2 Grid = 2 Rows, 4 Random Videos) */}
-          {randomFeaturedVideos.length > 0 && (
-            <div className="pt-4 border-t border-gray-100 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Play className="w-4 h-4 text-red-600 fill-current" />
-                  <span>Featured Toy Videos</span>
-                </h3>
-                <span className="text-xs text-gray-400">HD Clips</span>
+          {!hasScrolled ? (
+            <button
+              type="button"
+              onClick={() => setHasScrolled(true)}
+              className="w-full py-2.5 text-center text-emerald-600 hover:text-emerald-700 font-semibold text-sm transition-colors flex items-center justify-center gap-1.5 border border-dashed border-emerald-200 rounded-lg hover:bg-emerald-50/40"
+            >
+              <span>Scroll for More Games &amp; Videos</span>
+              <ChevronDown className="w-4 h-4 animate-bounce" />
+            </button>
+          ) : (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Mid-Page Ad Slot (slot: feed) directly above More Games grid */}
+              <div className="py-1">
+                <AdUnit slotKey="feed" isAdTraffic={isAdTraffic} />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
-                {randomFeaturedVideos.map((vid, idx) => (
-                  <a
-                    key={vid.id || idx}
-                    href={`/watch/${vid.id || `feat_${idx + 1}`}`}
-                    className="block group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
-                  >
-                    <img
-                      src={vid.image}
-                      alt={vid.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                    />
-                    <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-red-600/90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow">
-                      ▶ Video
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-10 h-8 sm:w-12 sm:h-9 rounded-xl bg-red-600/95 group-hover:bg-red-600 group-hover:scale-110 transition-all flex items-center justify-center text-white shadow-xl">
-                        <Play className="w-4 h-4 fill-current ml-0.5" />
-                      </div>
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 p-2 sm:p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-end justify-between gap-1.5">
-                      <div className="min-w-0">
-                        <p className="text-white text-[11px] sm:text-xs font-semibold truncate">
-                          {vid.title}
-                        </p>
-                      </div>
-                      <span className="px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono font-semibold shrink-0">
-                        {vid.duration || '01:45'}
-                      </span>
-                    </div>
-                  </a>
-                ))}
+              {/* SECTION 1: MORE GAMES TO PLAY (4-Column Square 1:1 Grid, 8 Initial Items + Infinite Scroll) */}
+              <div className="pt-1">
+                <FeaturedGamesGrid
+                  games={siteData.games && siteData.games.length > 0 ? siteData.games : otherGames}
+                  excludeGameId={activeGame.id}
+                  title="More Games You'll Love"
+                  badgeText="Instant Play"
+                />
+              </div>
+
+              {/* Game Description & Instructions (100% Google AdX Content Policy Safe) */}
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3 text-sm text-gray-700 leading-relaxed">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
+                  <Info className="w-4 h-4 text-emerald-600" />
+                  <span>About {activeGame.title} &amp; How to Play</span>
+                </div>
+                <p>
+                  {activeGame.description ||
+                    'Jump behind the wheel in this fast-paced racing and stunt adventure! Test your driving reflexes, dodge obstacles, and unlock cool new vehicles right in your browser.'}
+                </p>
+                {activeGame.instructions && (
+                  <div className="pt-2 border-t border-gray-200/70">
+                    <p className="text-xs font-bold text-gray-600 mb-1">Controls / Instructions:</p>
+                    <p className="text-xs text-gray-600">{activeGame.instructions}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 2: FEATURED VIDEOS (2x2 Grid = 2 Rows, 4 Random Videos) */}
+              {randomFeaturedVideos.length > 0 && (
+                <div className="pt-4 border-t border-gray-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <Play className="w-4 h-4 text-red-600 fill-current" />
+                      <span>Featured Toy Videos</span>
+                    </h3>
+                    <span className="text-xs text-gray-400">HD Clips</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
+                    {randomFeaturedVideos.map((vid, idx) => (
+                      <a
+                        key={vid.id || idx}
+                        href={`/watch/${vid.id || `feat_${idx + 1}`}`}
+                        className="block group relative rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer aspect-video bg-neutral-900"
+                      >
+                        <img
+                          src={vid.image}
+                          alt={vid.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                        />
+                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-red-600/90 text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow">
+                          ▶ Video
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-8 sm:w-12 sm:h-9 rounded-xl bg-red-600/95 group-hover:bg-red-600 group-hover:scale-110 transition-all flex items-center justify-center text-white shadow-xl">
+                            <Play className="w-4 h-4 fill-current ml-0.5" />
+                          </div>
+                        </div>
+                        <div className="absolute inset-x-0 bottom-0 p-2 sm:p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent flex items-end justify-between gap-1.5">
+                          <div className="min-w-0">
+                            <p className="text-white text-[11px] sm:text-xs font-semibold truncate">
+                              {vid.title}
+                            </p>
+                          </div>
+                          <span className="px-1.5 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono font-semibold shrink-0">
+                            {vid.duration || '01:45'}
+                          </span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Content Ad on Mobile/Tablet (slot: side) */}
+              <div className="lg:hidden pt-3 border-t border-gray-100">
+                <AdUnit slotKey="side" placement="mobile-only" isAdTraffic={isAdTraffic} />
               </div>
             </div>
           )}
-
-          {/* Bottom Content Ad on Mobile/Tablet (slot: side) */}
-          <div className="lg:hidden pt-3 border-t border-gray-100">
-            <AdUnit slotKey="side" placement="mobile-only" isAdTraffic={isAdTraffic} />
-          </div>
         </div>
 
         {/* Right Sticky Sidebar (slot: side2) */}

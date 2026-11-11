@@ -43,10 +43,15 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
     };
 
   useEffect(() => {
+    setIsTruncated(true);
+    setHasScrolled(false);
+  }, [targetSlug]);
+
+  useEffect(() => {
     if (hasScrolled) return;
 
     const onScroll = () => {
-      if (window.scrollY > 10) {
+      if (window.scrollY > 5) {
         setHasScrolled(true);
       }
     };
@@ -64,7 +69,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
 
     const onTouchMove = (e: TouchEvent) => {
       const currentY = e.touches[0].clientY;
-      if (touchStartY - currentY > 10) {
+      if (touchStartY - currentY > 5) {
         setHasScrolled(true);
       }
     };
@@ -74,7 +79,7 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: true });
 
-    if (window.scrollY > 10) {
+    if (window.scrollY > 5) {
       setHasScrolled(true);
     }
 
@@ -97,14 +102,6 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
       return () => clearTimeout(timer);
     }
   }, [isAdTraffic, settings]);
-
-  useEffect(() => {
-    if (settings.truncateOnAdTrafficOnly) {
-      setIsTruncated(isAdTraffic);
-    } else {
-      setIsTruncated(true);
-    }
-  }, [isAdTraffic, settings.truncateOnAdTrafficOnly]);
 
   // Thumbnails from dashboard config or defaults (randomly shuffled, max 4 items in 2x2 grid)
   const baseThumbnails =
