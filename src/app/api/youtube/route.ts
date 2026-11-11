@@ -27,6 +27,141 @@ function extractYouTubeId(input?: string): string | null {
   return null;
 }
 
+export interface YouTubeSearchResultItem {
+  videoId: string;
+  url: string;
+  title: string;
+  channel: string;
+  duration: string;
+  views: string;
+  published: string;
+  description: string;
+  thumbnail: string;
+}
+
+function collectVideoRenderers(node: any, out: any[] = []) {
+  if (!node || typeof node !== 'object') return out;
+  if (node.videoRenderer && node.videoRenderer.videoId) {
+    out.push(node.videoRenderer);
+    return out;
+  }
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      collectVideoRenderers(item, out);
+    }
+  } else {
+    for (const key of Object.keys(node)) {
+      collectVideoRenderers(node[key], out);
+    }
+  }
+  return out;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const rawQuery = (searchParams.get('q') || 'rc monster truck toy cars').trim();
+    const query = rawQuery || 'rc monster truck toy cars';
+
+    const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+      query
+    )}&sp=EgIQAQ%253D%253D`;
+
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: 'Gagal menghubungi pencarian YouTube.' },
+        { status: 502 }
+      );
+    }
+
+    const html = await res.text();
+    const match =
+      html.match(/var\s+ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/) ||
+      html.match(/window\["ytInitialData"\]\s*=\s*(\{[\s\S]*?\});/);
+
+    if (!match || !match[1]) {
+      return NextResponse.json({ items: [] });
+    }
+
+    const initialData = JSON.parse(match[1]);
+    const renderers = collectVideoRenderers(initialData);
+
+    const seen = new Set<string>();
+    const items: YouTubeSearchResultItem[] = [];
+
+    for (const v of renderers) {
+      const videoId = String(v.videoId || '').trim();
+      if (!videoId || seen.has(videoId)) continue;
+
+      const duration =
+        v.lengthText?.simpleText ||
+        v.thumbnailOverlays?.find((o: any) => o.thumbnailOverlayTimeStatusRenderer)
+          ?.thumbnailOverlayTimeStatusRenderer?.text?.simpleText ||
+        '';
+
+      // Skip live broadcasts without duration
+      if (!duration) continue;
+
+      seen.add(videoId);
+
+      const title =
+        v.title?.runs?.map((r: any) => r.text).join('') ||
+        v.title?.simpleText ||
+        `YouTube Video (${videoId})`;
+
+      const channel =
+        v.ownerText?.runs?.[0]?.text ||
+        v.longBylineText?.runs?.[0]?.text ||
+        v.shortBylineText?.runs?.[0]?.text ||
+        'YouTube';
+
+      const views =
+        v.shortViewCountText?.simpleText ||
+        v.viewCountText?.simpleText ||
+        '';
+
+      const published = v.publishedTimeText?.simpleText || '';
+
+      const snippetRuns =
+        v.detailedMetadataSnippets?.[0]?.snippetText?.runs ||
+        v.descriptionSnippet?.runs ||
+        [];
+      const description = snippetRuns.map((r: any) => r.text).join('').trim();
+
+      items.push({
+        videoId,
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        title,
+        channel,
+        duration,
+        views,
+        published,
+        description,
+        thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      });
+
+      if (items.length >= 18) break;
+    }
+
+    return NextResponse.json({ items, query });
+  } catch (error) {
+    console.error('Error searching YouTube:', error);
+    return NextResponse.json(
+      { error: 'Gagal mencari video dari YouTube.', items: [] },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

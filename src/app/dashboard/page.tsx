@@ -55,6 +55,27 @@ interface RawGameMonetizeItem {
   thumb: string;
 }
 
+interface YouTubeSearchItem {
+  videoId: string;
+  url: string;
+  title: string;
+  channel: string;
+  duration: string;
+  views: string;
+  published: string;
+  description: string;
+  thumbnail: string;
+}
+
+const YT_QUICK_SEARCH_TOPICS = [
+  'RC Monster Truck Stunt',
+  'Hot Wheels Track Race',
+  'Diecast Toy Cars',
+  'RC Drift Car Racing',
+  'RC Excavator Construction Toys',
+  'Pullback Toy Cars Race',
+];
+
 export default function DashboardPage() {
   const [data, setData] = useState<SiteData | null>(null);
   const [activeTab, setActiveTab] = useState<
@@ -76,9 +97,15 @@ export default function DashboardPage() {
   const [gmPage, setGmPage] = useState(1);
   const [compressingGameId, setCompressingGameId] = useState<string | null>(null);
 
-  // YouTube Auto-Fetch & WebP Compression states
+  // YouTube Auto-Fetch, In-Dashboard Search & WebP Compression states
   const [ytQuickUrl, setYtQuickUrl] = useState('');
   const [fetchingYt, setFetchingYt] = useState<string | null>(null);
+  const [ytSearchQuery, setYtSearchQuery] = useState('RC Monster Truck Stunt');
+  const [ytSearchResults, setYtSearchResults] = useState<YouTubeSearchItem[]>([]);
+  const [ytSearching, setYtSearching] = useState(false);
+  const [ytPreviewVideoId, setYtPreviewVideoId] = useState<string | null>(null);
+  const [addingYtVideoId, setAddingYtVideoId] = useState<string | null>(null);
+  const [generatingFromYtId, setGeneratingFromYtId] = useState<string | null>(null);
 
   // Auto-Article Generator (Option 1: YouTube & Option 2: AI Topic) states
   const [genYtUrl, setGenYtUrl] = useState('');
@@ -173,6 +200,23 @@ export default function DashboardPage() {
     }
   };
 
+  const searchYouTubeVideos = async (q = ytSearchQuery) => {
+    const query = q.trim() || 'RC Monster Truck Stunt';
+    setYtSearching(true);
+    setYtPreviewVideoId(null);
+    try {
+      const res = await fetch(`/api/youtube?q=${encodeURIComponent(query)}`);
+      const json = await res.json();
+      if (json.items) {
+        setYtSearchResults(json.items);
+      }
+    } catch (err) {
+      console.error('Error searching YouTube videos:', err);
+    } finally {
+      setYtSearching(false);
+    }
+  };
+
   useEffect(() => {
     // Ensure /dashboard is 100% free of any lingering GAM / GPT slots or out-of-page containers
     try {
@@ -192,6 +236,7 @@ export default function DashboardPage() {
     }
     fetchData();
     fetchGameCatalog('Racing', '', 1);
+    searchYouTubeVideos('RC Monster Truck Stunt');
   }, []);
 
   const formatSizesToString = (sizes: number[][]): string => {
@@ -558,6 +603,124 @@ export default function DashboardPage() {
       alert('Terjadi kesalahan saat memproses link YouTube.');
     } finally {
       setFetchingYt(null);
+    }
+  };
+
+  const addYouTubeFromSearch = async (vid: YouTubeSearchItem) => {
+    if (!data || addingYtVideoId) return;
+
+    const currentVideos = [...(data.featuredItems || [])];
+    const existingIdx = currentVideos.findIndex(
+      (item) => item.videoUrl && item.videoUrl.includes(vid.videoId)
+    );
+
+    if (existingIdx !== -1) {
+      const nextList = currentVideos.filter((_, i) => i !== existingIdx);
+      await autoSaveSiteData(
+        { ...data, featuredItems: nextList },
+        `Video "${vid.title}" dihapus dari Featured Videos.`
+      );
+      return;
+    }
+
+    setAddingYtVideoId(vid.videoId);
+    try {
+      const res = await fetch('/api/youtube', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: vid.url }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Gagal mengambil data video YouTube.');
+        return;
+      }
+
+      const newId = `feat_${Date.now()}`;
+      const newCard: FeaturedItem = {
+        id: newId,
+        title: vid.title || json.title || 'YouTube Video',
+        image: json.thumbnailUrl || vid.thumbnail,
+        videoUrl: json.videoUrl || vid.url,
+        targetUrl: `/watch/${newId}`,
+        duration: vid.duration || '02:30',
+        views: vid.views || '35.2K views',
+        description:
+          vid.description ||
+          `Watch "${vid.title}" by ${vid.channel} — action-packed highlights and full interactive video preview.`,
+      };
+
+      const nextList = [newCard, ...(data.featuredItems || [])];
+      if (json.summary) {
+        setCompressionStats((prev) => ({
+          ...prev,
+          feat_0: json.summary,
+        }));
+      }
+
+      await autoSaveSiteData(
+        { ...data, featuredItems: nextList },
+        `Video "${vid.title}" ditambahkan & thumbnail dikompres (${json.summary || 'WebP 16:9'})!`
+      );
+    } catch (err) {
+      console.error('Error adding YouTube video from search:', err);
+      alert('Gagal menambahkan video dari pencarian.');
+    } finally {
+      setAddingYtVideoId(null);
+    }
+  };
+
+  const generateArticleFromSearchItem = async (vid: YouTubeSearchItem) => {
+    if (!data || generatingFromYtId) return;
+    setGeneratingFromYtId(vid.videoId);
+    try {
+      const res = await fetch('/api/generate-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'youtube',
+          youtubeUrl: vid.url,
+          style: genStyle,
+          alsoAddToFeaturedVideos: true,
+          geminiApiKey: data.settings.geminiApiKey || '',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        alert(json.error || 'Gagal membuat artikel dari video ini.');
+        return;
+      }
+
+      const nextArticles = [...data.articles, json.article as Article];
+      let nextFeatured = [...(data.featuredItems || [])];
+      if (json.youtubeVideoCard) {
+        const card = {
+          ...(json.youtubeVideoCard as FeaturedItem),
+          duration: vid.duration || json.youtubeVideoCard.duration || '02:30',
+        };
+        const alreadyExists = nextFeatured.some(
+          (item) => item.videoUrl && item.videoUrl.includes(vid.videoId)
+        );
+        if (!alreadyExists) {
+          nextFeatured = [card, ...nextFeatured];
+        }
+      }
+
+      const nextData: SiteData = {
+        ...data,
+        articles: nextArticles,
+        featuredItems: nextFeatured,
+      };
+      setSelectedArticleIdx(nextArticles.length - 1);
+      await autoSaveSiteData(
+        nextData,
+        `Artikel "${json.article.title}" + Video berhasil dibuat & disimpan!`
+      );
+    } catch (err) {
+      console.error('Error generating article from YouTube search item:', err);
+      alert('Terjadi kesalahan saat membuat artikel dari video.');
+    } finally {
+      setGeneratingFromYtId(null);
     }
   };
 
@@ -1584,6 +1747,214 @@ export default function DashboardPage() {
                     </span>
                   </button>
                 </div>
+              </div>
+
+              {/* IN-DASHBOARD YOUTUBE VIDEO SEARCH BROWSER */}
+              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+                      <Search className="w-3.5 h-3.5" />
+                      <span>Cari Video Langsung dari YouTube (Tanpa Buka Tab Lain)</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Ketik kata kunci, preview videonya langsung di sini, lalu klik <strong>+ Tambah Video</strong> atau <strong>✨ Buat Artikel + Video</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Search Input + Quick Topic Chips */}
+                <div className="space-y-2.5">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={ytSearchQuery}
+                        onChange={(e) => setYtSearchQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            searchYouTubeVideos(ytSearchQuery);
+                          }
+                        }}
+                        placeholder="Ketik pencarian YouTube (contoh: RC Monster Truck, Hot Wheels Track, Toy Car Race)..."
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-red-500 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-100 outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => searchYouTubeVideos(ytSearchQuery)}
+                      disabled={ytSearching}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-bold text-xs shrink-0 transition-colors cursor-pointer"
+                    >
+                      <Search className={`w-3.5 h-3.5 ${ytSearching ? 'animate-spin' : ''}`} />
+                      <span>{ytSearching ? 'Mencari di YouTube...' : 'Cari Video YouTube'}</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Topic Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mr-1">
+                      Topik Cepat:
+                    </span>
+                    {YT_QUICK_SEARCH_TOPICS.map((topic) => (
+                      <button
+                        key={topic}
+                        type="button"
+                        onClick={() => {
+                          setYtSearchQuery(topic);
+                          searchYouTubeVideos(topic);
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${
+                          ytSearchQuery === topic
+                            ? 'bg-red-600/20 border-red-500 text-red-300'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                        }`}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Search Results Grid */}
+                {ytSearching ? (
+                  <div className="py-10 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
+                    <RefreshCw className="w-5 h-5 text-red-400 animate-spin" />
+                    <span>Mengambil daftar video langsung dari YouTube...</span>
+                  </div>
+                ) : ytSearchResults.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-500">
+                    Belum ada hasil pencarian. Ketik kata kunci lalu klik Cari Video YouTube.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-[540px] overflow-y-auto pr-1">
+                    {ytSearchResults.map((vid) => {
+                      const isAdded = (data.featuredItems || []).some(
+                        (item) => item.videoUrl && item.videoUrl.includes(vid.videoId)
+                      );
+                      const isAddingThis = addingYtVideoId === vid.videoId;
+                      const isGeneratingThis = generatingFromYtId === vid.videoId;
+                      const isPreviewing = ytPreviewVideoId === vid.videoId;
+
+                      return (
+                        <div
+                          key={vid.videoId}
+                          className={`rounded-xl border overflow-hidden flex flex-col justify-between transition-all ${
+                            isAdded
+                              ? 'bg-emerald-950/20 border-emerald-500/50'
+                              : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
+                          <div>
+                            {/* Thumbnail or Inline Preview Player */}
+                            <div className="relative aspect-video bg-black overflow-hidden">
+                              {isPreviewing ? (
+                                <iframe
+                                  src={`https://www.youtube-nocookie.com/embed/${vid.videoId}?autoplay=1&rel=0`}
+                                  title={vid.title}
+                                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="w-full h-full border-0"
+                                />
+                              ) : (
+                                <>
+                                  <img
+                                    src={vid.thumbnail}
+                                    alt={vid.title}
+                                    loading="lazy"
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
+                                  {/* Channel Badge */}
+                                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/75 text-slate-200 text-[10px] font-medium truncate max-w-[70%]">
+                                    {vid.channel}
+                                  </span>
+                                  {/* Added Badge */}
+                                  {isAdded && (
+                                    <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold shadow">
+                                      ✓ Aktif
+                                    </span>
+                                  )}
+                                  {/* Center Preview Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setYtPreviewVideoId(vid.videoId)}
+                                    title="Preview Video di Sini"
+                                    className="absolute inset-0 flex items-center justify-center group cursor-pointer"
+                                  >
+                                    <span className="px-2.5 py-1 rounded-full bg-red-600/90 group-hover:bg-red-500 text-white text-[10px] font-bold shadow-lg flex items-center gap-1 transition-transform group-hover:scale-105">
+                                      ▶ Preview
+                                    </span>
+                                  </button>
+                                  {/* Duration Badge */}
+                                  <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/85 text-white text-[10px] font-mono font-semibold">
+                                    {vid.duration}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Video Title */}
+                            <div className="p-2.5">
+                              <p
+                                className="text-xs font-bold text-slate-100 line-clamp-2 leading-snug"
+                                title={vid.title}
+                              >
+                                {vid.title}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* 1-Click Action Buttons */}
+                          <div className="px-2.5 pb-2.5 pt-1 flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => addYouTubeFromSearch(vid)}
+                              disabled={addingYtVideoId !== null || generatingFromYtId !== null}
+                              className={`flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                                isAdded
+                                  ? 'bg-emerald-600/20 hover:bg-red-600/30 text-emerald-300 hover:text-red-200 border border-emerald-500/40'
+                                  : 'bg-red-600 hover:bg-red-500 text-white'
+                              }`}
+                            >
+                              {isAddingThis ? (
+                                <>
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                  <span>Mengompres...</span>
+                                </>
+                              ) : isAdded ? (
+                                <>
+                                  <Check className="w-3 h-3" />
+                                  <span>Sudah Masuk (Klik Hapus)</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-3 h-3" />
+                                  <span>Tambah Video</span>
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => generateArticleFromSearchItem(vid)}
+                              disabled={generatingFromYtId !== null || addingYtVideoId !== null}
+                              title="Buat Artikel + Masukkan ke Featured Videos"
+                              className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold transition-colors cursor-pointer shrink-0"
+                            >
+                              <Sparkles
+                                className={`w-3 h-3 ${isGeneratingThis ? 'animate-spin' : ''}`}
+                              />
+                              <span>{isGeneratingThis ? 'Membuat...' : '+ Artikel'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
