@@ -61,6 +61,7 @@ async function DynamicGameReader({ paramsPromise }: { paramsPromise: Promise<{ i
       siteData={siteData}
       currentGame={currentGame}
       otherGames={otherGames.length > 0 ? otherGames : [currentGame]}
+      requestedId={id}
     />
   );
 }

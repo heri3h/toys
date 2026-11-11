@@ -4,9 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiteData, GameItem } from '@/types';
 import { AdUnit, MobileBottomAnchorAd, InterstitialAdUnit } from './AdUnit';
+import { FeaturedGamesGrid } from './FeaturedGamesGrid';
 import {
   Play,
-  Gamepad2,
   Maximize2,
   ArrowLeft,
   ThumbsUp,
@@ -18,18 +18,39 @@ interface GamePlayContentProps {
   siteData: SiteData;
   currentGame: GameItem;
   otherGames: GameItem[];
+  requestedId?: string;
 }
 
 export const GamePlayContent: React.FC<GamePlayContentProps> = ({
   siteData,
   currentGame,
   otherGames,
+  requestedId,
 }) => {
   const searchParams = useSearchParams();
   const { settings, ads, featuredItems } = siteData;
 
   const gclid = searchParams.get('gclid');
   const isAdTraffic = Boolean(gclid);
+
+  const paramTitle = searchParams.get('title');
+  const paramEmbed = searchParams.get('embed');
+  const paramThumb = searchParams.get('thumb');
+  const paramCat = searchParams.get('cat');
+
+  const activeGame: GameItem =
+    paramEmbed && paramTitle
+      ? {
+          id: requestedId || currentGame.id,
+          title: paramTitle,
+          image: paramThumb || currentGame.image,
+          embedUrl: paramEmbed,
+          category: paramCat || currentGame.category || 'Racing',
+          plays: '48.2K plays',
+          description: currentGame.description,
+          instructions: currentGame.instructions,
+        }
+      : currentGame;
 
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -40,12 +61,13 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
   );
 
   useEffect(() => {
+    setIsGameStarted(false);
     if (featuredItems && featuredItems.length > 0) {
       setRandomFeaturedVideos(
         [...featuredItems].sort(() => Math.random() - 0.5).slice(0, 4)
       );
     }
-  }, [featuredItems, currentGame.id]);
+  }, [featuredItems, activeGame.id]);
 
   const handleFullscreen = () => {
     const el = gameContainerRef.current;
@@ -107,7 +129,7 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
               <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden">
                 {/* Blurred Background Poster */}
                 <img
-                  src={currentGame.image}
+                  src={activeGame.image}
                   alt=""
                   aria-hidden="true"
                   className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-40"
@@ -118,8 +140,8 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
                 <div className="relative z-10 flex flex-col items-center max-w-sm space-y-4">
                   <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900">
                     <img
-                      src={currentGame.image}
-                      alt={currentGame.title}
+                      src={activeGame.image}
+                      alt={activeGame.title}
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -127,10 +149,10 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
                   <div className="space-y-1">
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
                       <Sparkles className="w-3 h-3" />
-                      <span>{currentGame.category || 'Racing'} • HTML5 Instant Play</span>
+                      <span>{activeGame.category || 'Racing'} • HTML5 Instant Play</span>
                     </span>
                     <h1 className="text-lg sm:text-xl font-extrabold text-white">
-                      {currentGame.title}
+                      {activeGame.title}
                     </h1>
                   </div>
 
@@ -152,8 +174,8 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
               /* Active HTML5 Game Iframe Container */
               <div className="relative w-full h-full flex flex-col bg-black">
                 <iframe
-                  src={currentGame.embedUrl}
-                  title={currentGame.title}
+                  src={activeGame.embedUrl}
+                  title={activeGame.title}
                   allow="autoplay; fullscreen; gamepad; accelerometer; gyroscope"
                   allowFullScreen
                   className="w-full flex-1 border-0"
@@ -166,10 +188,10 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-100">
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-gray-900">
-                {currentGame.title}
+                {activeGame.title}
               </h2>
               <p className="text-xs text-gray-500">
-                {currentGame.category || 'Racing & Driving'} • {currentGame.plays || '58.4K plays'}
+                {activeGame.category || 'Racing & Driving'} • {activeGame.plays || '58.4K plays'}
               </p>
             </div>
 
@@ -206,57 +228,30 @@ export const GamePlayContent: React.FC<GamePlayContentProps> = ({
             <AdUnit slotKey="feed" isAdTraffic={isAdTraffic} />
           </div>
 
-          {/* SECTION 1: MORE GAMES TO PLAY (Square 1:1 Grid) */}
-          {otherGames.length > 0 && (
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Gamepad2 className="w-4 h-4 text-emerald-600" />
-                  <span>More Games You&apos;ll Love</span>
-                </h3>
-                <span className="text-[11px] text-emerald-600 font-semibold">Instant Play</span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
-                {otherGames.map((game, idx) => (
-                  <a
-                    key={game.id || idx}
-                    href={`/play/${game.id || idx}`}
-                    className="group relative aspect-square rounded-2xl overflow-hidden bg-neutral-900 border border-gray-200 shadow-xs hover:shadow-lg transition-all"
-                  >
-                    <img
-                      src={game.image}
-                      alt={game.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-emerald-600/95 text-white text-[10px] font-bold uppercase tracking-wider shadow">
-                      🎮 Play
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-                      <p className="text-white text-xs font-bold truncate">{game.title}</p>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* SECTION 1: MORE GAMES TO PLAY (4-Column Square 1:1 Grid, 8 Initial Items + Infinite Scroll) */}
+          <div className="pt-1">
+            <FeaturedGamesGrid
+              games={siteData.games && siteData.games.length > 0 ? siteData.games : otherGames}
+              excludeGameId={activeGame.id}
+              title="More Games You'll Love"
+              badgeText="Instant Play"
+            />
+          </div>
 
           {/* Game Description & Instructions (100% Google AdX Content Policy Safe) */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3 text-sm text-gray-700 leading-relaxed">
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-500">
               <Info className="w-4 h-4 text-emerald-600" />
-              <span>About {currentGame.title} &amp; How to Play</span>
+              <span>About {activeGame.title} &amp; How to Play</span>
             </div>
             <p>
-              {currentGame.description ||
+              {activeGame.description ||
                 'Jump behind the wheel in this fast-paced racing and stunt adventure! Test your driving reflexes, dodge obstacles, and unlock cool new vehicles right in your browser.'}
             </p>
-            {currentGame.instructions && (
+            {activeGame.instructions && (
               <div className="pt-2 border-t border-gray-200/70">
                 <p className="text-xs font-bold text-gray-600 mb-1">Controls / Instructions:</p>
-                <p className="text-xs text-gray-600">{currentGame.instructions}</p>
+                <p className="text-xs text-gray-600">{activeGame.instructions}</p>
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiteData, FeaturedItem } from '@/types';
 import { AdUnit, MobileBottomAnchorAd, InterstitialAdUnit } from './AdUnit';
+import { FeaturedGamesGrid } from './FeaturedGamesGrid';
 import {
   Play,
   Pause,
@@ -14,7 +15,6 @@ import {
   ArrowLeft,
   Eye,
   Clock,
-  Gamepad2,
 } from 'lucide-react';
 
 interface VideoWatchContentProps {
@@ -532,44 +532,10 @@ export const VideoWatchContent: React.FC<VideoWatchContentProps> = ({
             </p>
           </div>
 
-          {/* SECTION 2: FEATURED GAMES (Square 1:1 Grid) */}
-          {games && games.length > 0 && (
-            <div className="pt-4 border-t border-gray-100 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Gamepad2 className="w-4 h-4 text-emerald-600" />
-                  <span>Featured Games (Instant Play)</span>
-                </h3>
-                <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
-                  No Download
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
-                {games.map((game, idx) => (
-                  <a
-                    key={game.id || idx}
-                    href={`/play/${game.id || idx}`}
-                    className="group relative aspect-square rounded-2xl overflow-hidden bg-neutral-900 border border-gray-200 shadow-xs hover:shadow-lg transition-all"
-                  >
-                    <img
-                      src={game.image}
-                      alt={game.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-emerald-600/95 text-white text-[10px] font-bold uppercase tracking-wider shadow">
-                      🎮 Play
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
-                      <p className="text-white text-xs font-bold truncate">{game.title}</p>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* SECTION 2: FEATURED GAMES (4-Column Square 1:1 Grid, 8 Initial Items + Infinite Scroll) */}
+          <div className="pt-4 border-t border-gray-100">
+            <FeaturedGamesGrid games={games || []} />
+          </div>
 
           {/* Bottom Content Ad on Mobile/Tablet (slot: side) */}
           <div className="lg:hidden pt-3 border-t border-gray-100">
