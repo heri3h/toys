@@ -252,7 +252,7 @@ export const MobileBottomAnchorAd: React.FC<{
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
-          if (isDashboardRoute()) return;
+          if (isDashboardRoute() || window.mbelikSlotSticky) return;
           const slotPath =
             window.MBELIK_AD_UNITS?.anchor || DEFAULT_AD_UNITS.anchor;
           const format = window.googletag.enums?.OutOfPageFormat?.BOTTOM_ANCHOR;
@@ -295,7 +295,7 @@ export const MobileBottomAnchorAd: React.FC<{
 
 /**
  * Native GPT Full-Page Interstitial / Vignette Ad (`OutOfPageFormat.INTERSTITIAL`)
- * Identical to `slotInt` in `AdsHeader.php` on the other domains.
+ * Defined and managed centrally in AdsHeader before enableServices().
  */
 export const InterstitialAdUnit: React.FC = () => {
   const initializedRef = useRef(false);
@@ -309,7 +309,7 @@ export const InterstitialAdUnit: React.FC = () => {
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
-          if (isDashboardRoute()) return;
+          if (isDashboardRoute() || window.mbelikSlotInt) return;
           const slotPath =
             window.MBELIK_AD_UNITS?.interstitial || DEFAULT_AD_UNITS.interstitial;
           const format = window.googletag.enums?.OutOfPageFormat?.INTERSTITIAL;

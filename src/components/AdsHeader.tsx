@@ -220,6 +220,64 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
     window.googletag.pubads().setTargeting('mbelik_pricing', keys.keyBnr);
     window.googletag.pubads().collapseEmptyDivs();
 
+    // Define Out-Of-Page slots BEFORE enableServices()
+    var adUnitsConfig = window.MBELIK_AD_UNITS || {};
+    var intPath = adUnitsConfig.interstitial || '/22806125615/play-5';
+    var intFormat = window.googletag.enums && window.googletag.enums.OutOfPageFormat && window.googletag.enums.OutOfPageFormat.INTERSTITIAL;
+    if (intFormat && window.googletag.defineOutOfPageSlot && !window.mbelikSlotInt) {
+      try {
+        var slotInt = window.googletag.defineOutOfPageSlot(intPath, intFormat);
+        if (slotInt) {
+          slotInt.addService(window.googletag.pubads());
+          var keyInt = (typeof window.mbelikResolveSlotKey === 'function')
+            ? window.mbelikResolveSlotKey(intPath, 'int')
+            : (keys.keyInt || 'f35000');
+          slotInt.setTargeting('mbelik_pricing', keyInt);
+          if (typeof slotInt.setConfig === 'function') {
+            slotInt.setConfig({
+              interstitial: {
+                triggers: {
+                  navBar: true,
+                  unhideWindow: true
+                }
+              }
+            });
+          }
+          window.mbelikSlotInt = slotInt;
+          console.log("💰 [AutoPricing SetTargeting Sync] Slot: interstitial (" + intPath + ") | Key:", keyInt);
+        }
+      } catch (e) {
+        console.warn("Failed to define interstitial slot in AdsHeader:", e);
+      }
+    }
+
+    var ancPath = adUnitsConfig.anchor || '/22806125615/play-6';
+    var ancFormat = window.googletag.enums && window.googletag.enums.OutOfPageFormat && window.googletag.enums.OutOfPageFormat.BOTTOM_ANCHOR;
+    if (ancFormat && window.googletag.defineOutOfPageSlot && !window.mbelikSlotSticky) {
+      try {
+        var slotSticky = window.googletag.defineOutOfPageSlot(ancPath, ancFormat);
+        if (slotSticky) {
+          slotSticky.addService(window.googletag.pubads());
+          var keyAnc = (typeof window.mbelikResolveSlotKey === 'function')
+            ? window.mbelikResolveSlotKey(ancPath, 'anc')
+            : (keys.keyAnc || 'f15000');
+          slotSticky.setTargeting('mbelik_pricing', keyAnc);
+          window.mbelikSlotSticky = slotSticky;
+          console.log("💰 [AutoPricing SetTargeting Sync] Slot: anchor (" + ancPath + ") | Key:", keyAnc);
+        }
+      } catch (e) {
+        console.warn("Failed to define anchor slot in AdsHeader:", e);
+      }
+    }
+
+    window.googletag.enableServices();
+    if (window.mbelikSlotInt) {
+      window.googletag.display(window.mbelikSlotInt);
+    }
+    if (window.mbelikSlotSticky) {
+      window.googletag.display(window.mbelikSlotSticky);
+    }
+
     window.googletag.pubads().addEventListener('slotRenderEnded', function(event) {
       var slot = event.slot;
       var isLoaded = !event.isEmpty;
