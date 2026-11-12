@@ -220,6 +220,24 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
     window.googletag.pubads().setTargeting('mbelik_pricing', keys.keyBnr);
     window.googletag.pubads().collapseEmptyDivs();
 
+    // Permanent Out-Of-Page Interstitial slot initialization (identical to adsheader.php)
+    var adUnitsCfg = window.MBELIK_AD_UNITS || {};
+    var intPath = adUnitsCfg.interstitial || '/22806125615/mbelik-12';
+    if (!window.mbelikSlotInt && window.googletag.enums && window.googletag.enums.OutOfPageFormat && window.googletag.enums.OutOfPageFormat.INTERSTITIAL) {
+      try {
+        var slotInt = window.googletag.defineOutOfPageSlot(intPath, window.googletag.enums.OutOfPageFormat.INTERSTITIAL);
+        if (slotInt) {
+          slotInt.addService(window.googletag.pubads());
+          slotInt.setTargeting('mbelik_pricing', keys.keyInt);
+          window.mbelikSlotInt = slotInt;
+          console.log("💰 [AutoPricing SetTargeting Sync] Slot: interstitial (" + intPath + ") | Key:", keys.keyInt);
+          window.googletag.display(slotInt);
+        }
+      } catch (e) {
+        console.warn("[GPT Interstitial Init] Failed:", e);
+      }
+    }
+
     window.googletag.pubads().addEventListener('slotRenderEnded', function(event) {
       var slot = event.slot;
       var isLoaded = !event.isEmpty;
@@ -247,12 +265,18 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
       if (currentRule && currentRule.cpm) {
         estimatedECPM = currentRule.cpm;
       } else if (pricingKey === 'google_optimize') {
-        var adUnitsCfg = window.MBELIK_AD_UNITS || {};
-        var isIntSlot = (adUnitsCfg.interstitial && path === adUnitsCfg.interstitial) || path.indexOf('int') !== -1 || path.indexOf('-5') !== -1 || path.indexOf('-12') !== -1;
-        var isAncSlot = (adUnitsCfg.anchor && path === adUnitsCfg.anchor) || path.indexOf('anc') !== -1 || path.indexOf('sticky') !== -1 || path.indexOf('-6') !== -1 || path.indexOf('-13') !== -1;
+        var adUnitsConfig = window.MBELIK_AD_UNITS || {};
+        var isIntSlot = (adUnitsConfig.interstitial && path === adUnitsConfig.interstitial) || path.indexOf('int') !== -1 || path.indexOf('-5') !== -1 || path.indexOf('-12') !== -1;
+        var isAncSlot = (adUnitsConfig.anchor && path === adUnitsConfig.anchor) || path.indexOf('anc') !== -1 || path.indexOf('sticky') !== -1 || path.indexOf('-6') !== -1 || path.indexOf('-13') !== -1;
         var fmtKey = isIntSlot ? 'int' : (isAncSlot ? 'anc' : 'bnr');
         var cpData = window.MBELIK_INLINE_CURRENT_PRICING || null;
-        if (cpData && cpData.summary && cpData.summary[fmtKey] && cpData.summary[fmtKey].ecpm) {
+        var countryDev = (cpData && cpData.countries && userCountry && cpData.countries[userCountry] && userDevice && cpData.countries[userCountry][userDevice]) ? cpData.countries[userCountry][userDevice] : null;
+        var devSummary = (cpData && cpData.summary && userDevice && cpData.summary[userDevice]) ? cpData.summary[userDevice] : null;
+        if (countryDev && countryDev[fmtKey] && countryDev[fmtKey].ecpm) {
+          estimatedECPM = parseFloat(countryDev[fmtKey].ecpm) || 0.0;
+        } else if (devSummary && devSummary[fmtKey] && devSummary[fmtKey].ecpm) {
+          estimatedECPM = parseFloat(devSummary[fmtKey].ecpm) || 0.0;
+        } else if (cpData && cpData.summary && cpData.summary[fmtKey] && cpData.summary[fmtKey].ecpm) {
           estimatedECPM = parseFloat(cpData.summary[fmtKey].ecpm) || 0.0;
         }
         if (estimatedECPM <= 0) {
@@ -283,15 +307,37 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
       );
     });
 
-    window.googletag.pubads().addEventListener('impressionViewable', function(event) {
-      var slot = event.slot;
-      if (!window.mbelikSlotInt || slot !== window.mbelikSlotInt) return;
+    // Helper: Trigger interstitial conversion cleanly with duplicate guard and beacon transport
+    function triggerInterstitialConversion(slot, sourceEvent) {
+      if (!slot) return;
+      if (window.__mbelikIntConversionSent) return;
 
-      var path = slot.getAdUnitPath();
-      var slotId = slot.getSlotElementId();
+      var path = (typeof slot.getAdUnitPath === 'function') ? slot.getAdUnitPath() : '';
+      var adUnitsConfig = window.MBELIK_AD_UNITS || {};
+      var intConfigPath = adUnitsConfig.interstitial || '';
+
+      var isInt = false;
+      if (window.mbelikSlotInt && slot === window.mbelikSlotInt) {
+        isInt = true;
+      } else if (intConfigPath && path === intConfigPath) {
+        isInt = true;
+      } else if (path && (path.indexOf('int') !== -1 || path.indexOf('vignet') !== -1 || path.indexOf('-5') !== -1 || path.indexOf('-12') !== -1)) {
+        isInt = true;
+      } else {
+        try {
+          var slotElemId = (typeof slot.getSlotElementId === 'function') ? slot.getSlotElementId() : '';
+          if (slotElemId && (slotElemId.indexOf('interstitial') !== -1 || slotElemId.indexOf('int') !== -1)) isInt = true;
+        } catch (e) {}
+      }
+
+      if (!isInt) return;
+
+      window.__mbelikIntConversionSent = true;
+
+      var slotId = (typeof slot.getSlotElementId === 'function') ? slot.getSlotElementId() : '';
       var trackingKey = slotId ? (path + " (" + slotId + ")") : path;
 
-      var targetingValues = slot.getTargeting('mbelik_pricing');
+      var targetingValues = (typeof slot.getTargeting === 'function') ? slot.getTargeting('mbelik_pricing') : [];
       var pricingKey = (targetingValues && targetingValues.length > 0) ? targetingValues[0] : (window.mbelikPricingVal || 'unknown');
 
       var currentRule = null;
@@ -311,7 +357,13 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
         estimatedECPM = currentRule.cpm;
       } else if (pricingKey === 'google_optimize') {
         var cpData = window.MBELIK_INLINE_CURRENT_PRICING || null;
-        if (cpData && cpData.summary && cpData.summary.int && cpData.summary.int.ecpm) {
+        var countryDev = (cpData && cpData.countries && userCountry && cpData.countries[userCountry] && userDevice && cpData.countries[userCountry][userDevice]) ? cpData.countries[userCountry][userDevice] : null;
+        var devSummary = (cpData && cpData.summary && userDevice && cpData.summary[userDevice]) ? cpData.summary[userDevice] : null;
+        if (countryDev && countryDev.int && countryDev.int.ecpm) {
+          estimatedECPM = parseFloat(countryDev.int.ecpm) || 0.0;
+        } else if (devSummary && devSummary.int && devSummary.int.ecpm) {
+          estimatedECPM = parseFloat(devSummary.int.ecpm) || 0.0;
+        } else if (cpData && cpData.summary && cpData.summary.int && cpData.summary.int.ecpm) {
           estimatedECPM = parseFloat(cpData.summary.int.ecpm) || 0.0;
         }
         if (estimatedECPM <= 0) estimatedECPM = 25000.0;
@@ -334,9 +386,25 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
         window.gtag('event', 'conversion', {
           'send_to': activeSendTo,
           'value': Number(sessionVal.toFixed(2)),
-          'currency': 'IDR'
+          'currency': 'IDR',
+          'transport_type': 'beacon'
         });
-        console.log("🎯 [Google Ads Interstitial Conversion Sent] Slot: " + trackingKey + " | SendTo: " + activeSendTo + " | Viewable on Screen | Value (Total Session): +Rp " + sessionVal.toFixed(2));
+        console.log("🎯 [Google Ads Interstitial Conversion Sent] (" + sourceEvent + ") Slot: " + trackingKey + " | SendTo: " + activeSendTo + " | Viewable on Screen | Value (Total Session): +Rp " + sessionVal.toFixed(2));
+      } else {
+        console.warn("⚠️ [Conversion Not Sent] gtag missing or send_to empty:", typeof window.gtag, activeSendTo);
+      }
+    }
+
+    window.mbelikTriggerInterstitialConversion = triggerInterstitialConversion;
+
+    // Trigger conversion on both impressionViewable and slotVisibilityChanged (>= 50%)
+    window.googletag.pubads().addEventListener('impressionViewable', function(event) {
+      triggerInterstitialConversion(event.slot, 'impressionViewable');
+    });
+
+    window.googletag.pubads().addEventListener('slotVisibilityChanged', function(event) {
+      if (event && event.inViewPercentage >= 50) {
+        triggerInterstitialConversion(event.slot, 'slotVisibilityChanged');
       }
     });
   });

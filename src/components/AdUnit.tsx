@@ -304,20 +304,23 @@ export const InterstitialAdUnit: React.FC = () => {
     if (initializedRef.current || isDashboardRoute()) return;
     initializedRef.current = true;
 
+    // If interstitial slot is already created permanently by AdsHeader, do nothing
+    if (typeof window !== 'undefined' && window.mbelikSlotInt) {
+      return;
+    }
+
     ensureGptLoaded();
 
-    let createdSlot: any = null;
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
-          if (isDashboardRoute()) return;
+          if (isDashboardRoute() || window.mbelikSlotInt) return;
           const slotPath =
             window.MBELIK_AD_UNITS?.interstitial || DEFAULT_AD_UNITS.interstitial;
           const format = window.googletag.enums?.OutOfPageFormat?.INTERSTITIAL;
           if (format && window.googletag.defineOutOfPageSlot) {
             const interstitialSlot = window.googletag.defineOutOfPageSlot(slotPath, format);
             if (interstitialSlot) {
-              createdSlot = interstitialSlot;
               const keyInt =
                 window.mbelikResolveSlotKey?.(slotPath, 'int') ||
                 window.mbelikKeys?.keyInt ||
@@ -339,13 +342,7 @@ export const InterstitialAdUnit: React.FC = () => {
       });
     }
 
-    return () => {
-      if (createdSlot && window.googletag?.destroySlots) {
-        try {
-          window.googletag.destroySlots([createdSlot]);
-        } catch {}
-      }
-    };
+    // Out-of-page interstitial must NEVER be destroyed on client unmount/navigation
   }, []);
 
   return null;
