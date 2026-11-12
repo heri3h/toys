@@ -184,8 +184,12 @@ export const ArticlePageContent: React.FC<ArticlePageContentProps> = ({
             <span className="bg-cyan-50 text-cyan-800 font-semibold px-2 py-0.5 rounded text-[11px]">
               {currentArticle.category}
             </span>
-            <span>•</span>
-            <span>{currentArticle.publishedDate}</span>
+            {currentArticle.readingTime && (
+              <>
+                <span>•</span>
+                <span>{currentArticle.readingTime}</span>
+              </>
+            )}
           </div>
 
           {/* Description Container with Read More Button */}
