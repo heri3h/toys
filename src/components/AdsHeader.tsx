@@ -220,24 +220,6 @@ window.MBELIK_SEND_TO = ${JSON.stringify(cfgSendTo)};
     window.googletag.pubads().setTargeting('mbelik_pricing', keys.keyBnr);
     window.googletag.pubads().collapseEmptyDivs();
 
-    // Permanent Out-Of-Page Interstitial slot initialization (identical to adsheader.php)
-    var adUnitsCfg = window.MBELIK_AD_UNITS || {};
-    var intPath = adUnitsCfg.interstitial || '/22806125615/mbelik-12';
-    if (!window.mbelikSlotInt && window.googletag.enums && window.googletag.enums.OutOfPageFormat && window.googletag.enums.OutOfPageFormat.INTERSTITIAL) {
-      try {
-        var slotInt = window.googletag.defineOutOfPageSlot(intPath, window.googletag.enums.OutOfPageFormat.INTERSTITIAL);
-        if (slotInt) {
-          slotInt.addService(window.googletag.pubads());
-          slotInt.setTargeting('mbelik_pricing', keys.keyInt);
-          window.mbelikSlotInt = slotInt;
-          console.log("💰 [AutoPricing SetTargeting Sync] Slot: interstitial (" + intPath + ") | Key:", keys.keyInt);
-          window.googletag.display(slotInt);
-        }
-      } catch (e) {
-        console.warn("[GPT Interstitial Init] Failed:", e);
-      }
-    }
-
     window.googletag.pubads().addEventListener('slotRenderEnded', function(event) {
       var slot = event.slot;
       var isLoaded = !event.isEmpty;

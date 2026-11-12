@@ -304,17 +304,12 @@ export const InterstitialAdUnit: React.FC = () => {
     if (initializedRef.current || isDashboardRoute()) return;
     initializedRef.current = true;
 
-    // If interstitial slot is already created permanently by AdsHeader, do nothing
-    if (typeof window !== 'undefined' && window.mbelikSlotInt) {
-      return;
-    }
-
     ensureGptLoaded();
 
     if (window.googletag && window.googletag.cmd) {
       window.googletag.cmd.push(() => {
         try {
-          if (isDashboardRoute() || window.mbelikSlotInt) return;
+          if (isDashboardRoute()) return;
           const slotPath =
             window.MBELIK_AD_UNITS?.interstitial || DEFAULT_AD_UNITS.interstitial;
           const format = window.googletag.enums?.OutOfPageFormat?.INTERSTITIAL;
